@@ -1,0 +1,2663 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ARES Command Center</title>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/dashboard.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app-shell">
+
+
+    <!-- ==================================================
+         SIDEBAR
+    =================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-mark">
+                A
+            </div>
+
+            <div>
+
+                <div class="brand-name">
+                    ARES
+                </div>
+
+                <div class="brand-subtitle">
+                    Emergency Intelligence
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <nav class="nav">
+
+            <div class="nav-item active">
+                <span class="nav-icon">◉</span>
+                Command Center
+            </div>
+
+            <div class="nav-item">
+                <span class="nav-icon">⌖</span>
+                Incident Map
+            </div>
+
+            <div class="nav-item">
+                <span class="nav-icon">◆</span>
+                Response Units
+            </div>
+
+            <div class="nav-item">
+                <span class="nav-icon">✚</span>
+                Medical Capacity
+            </div>
+
+            <div class="nav-item">
+                <span class="nav-icon">⌁</span>
+                Network Intelligence
+            </div>
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+            <div class="integration-card">
+
+                <div class="integration-dot"></div>
+
+                <div>
+
+                    <strong>
+                        Nokia NaC
+                    </strong>
+
+                    <span>
+                        Open Gateway connected
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="version">
+                ARES Prototype 
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ==================================================
+         MAIN
+    =================================================== -->
+
+    <main class="main-content">
+
+
+        <!-- ==================================================
+             TOPBAR
+        =================================================== -->
+
+        <header class="topbar">
+
+            <div>
+
+                <div class="eyebrow">
+                    EMERGENCY OPERATIONS
+                </div>
+
+                <h1>
+                    Command Center
+                </h1>
+
+                <p>
+                    AI-assisted disaster intelligence and
+                    network-aware resource orchestration
+                </p>
+
+            </div>
+
+
+            <div class="topbar-actions">
+
+                <div class="system-live">
+                    <span></span>
+                    SYSTEM LIVE
+                </div>
+
+                <button
+                    class="refresh-button"
+                    onclick="window.location.reload()"
+                >
+                    Refresh Intelligence
+                </button>
+
+            </div>
+
+        </header>
+
+        <!-- ==================================================
+     DEMO CONTROLLER
+=================================================== -->
+
+<section class="demo-controller">
+
+    <div class="demo-controller-left">
+
+        <div class="demo-controller-label">
+            LIVE DEMO CONTROL
+        </div>
+
+        <div class="demo-controller-title">
+            Scenario Orchestrator
+        </div>
+
+    </div>
+
+
+    <div class="demo-controller-actions">
+
+        <button
+            id="demo-reset-button"
+            class="demo-control-button"
+            type="button"
+        >
+            Reset Demo
+        </button>
+
+        <button
+            id="demo-baseline-button"
+            class="demo-control-button primary"
+            type="button"
+        >
+            Inject Baseline Incident
+        </button>
+
+        <button
+            id="demo-escalate-button"
+            class="demo-control-button warning"
+            type="button"
+        >
+            Escalate Incident
+        </button>
+
+        <button
+            id="demo-network-button"
+            class="demo-control-button danger"
+            type="button"
+        >
+            Simulate R01 Network Loss
+        </button>
+
+    </div>
+
+</section>
+
+        <!-- ==================================================
+             INCIDENT
+        =================================================== -->
+
+        <section class="incident-banner">
+
+            <div class="incident-symbol">
+                !
+            </div>
+
+
+            <div class="incident-main">
+
+                <div class="incident-label">
+                    ACTIVE INCIDENT
+                </div>
+
+                <div class="incident-title">
+                    {{ state.incident.name }}
+                </div>
+
+                <div class="incident-meta">
+
+                    {{ state.incident.incident_id }}
+                    ·
+                    {{ state.incident.disaster_type|title }}
+                    ·
+                    {{ state.incident.source|replace("_", " ")|title }}
+
+                </div>
+
+            </div>
+
+
+            <div class="severity-badge">
+                {{ state.incident.severity|upper }}
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             METRICS
+        =================================================== -->
+
+        <section class="metrics-grid">
+
+            <article class="metric-card">
+
+                <span class="metric-label">
+                    Population Exposed
+                </span>
+
+                <strong>
+                    {{
+                        "{:,}".format(
+                            state.incident
+                            .estimated_population
+                        )
+                    }}
+                </strong>
+
+                <span class="metric-note">
+                    Spatial impact estimate
+                </span>
+
+            </article>
+
+
+            <article class="metric-card">
+
+                <span class="metric-label">
+                    Estimated Casualties
+                </span>
+
+                <strong>
+                    {{
+                        "{:,}".format(
+                            state.incident
+                            .estimated_casualties
+                        )
+                    }}
+                </strong>
+
+                <span class="metric-note">
+                    Multi-zone assessment
+                </span>
+
+            </article>
+
+
+            <article class="metric-card critical">
+
+                <span class="metric-label">
+                    Critical Casualties
+                </span>
+
+                <strong>
+                    {{
+                        "{:,}".format(
+                            state.incident
+                            .estimated_critical
+                        )
+                    }}
+                </strong>
+
+                <span class="metric-note">
+                    Highest medical priority
+                </span>
+
+            </article>
+
+
+            <article class="metric-card">
+
+                <span class="metric-label">
+                    Reachable Teams
+                </span>
+
+                <strong>
+                    {{
+                        state.responders
+                        |selectattr("reachable")
+                        |list
+                        |length
+                    }}
+                    /
+                    {{ state.responders|length }}
+                </strong>
+
+                <span class="metric-note">
+                    Nokia Device Reachability
+                </span>
+
+            </article>
+
+        </section>
+
+
+        <!-- ==================================================
+             INCIDENT CONTROL
+        =================================================== -->
+
+        <section class="panel incident-control-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        INCIDENT CONTROL
+                    </span>
+
+                    <h2>
+                        Inject New Scenario
+                    </h2>
+
+                </div>
+
+                <div class="model-chip">
+                    SIMULATION
+                </div>
+
+            </div>
+
+
+            <div class="incident-control-content">
+
+                <div class="incident-form-grid">
+
+
+                    <div class="form-field">
+
+                        <label for="incident-id">
+                            Incident ID
+                        </label>
+
+                        <input
+                            id="incident-id"
+                            type="text"
+                            value="INC-003"
+                        >
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label for="incident-source">
+                            Source
+                        </label>
+
+                        <select id="incident-source">
+
+                            <option value="simulated_satellite_alert">
+                                Simulated Satellite Alert
+                            </option>
+
+                            <option value="operator_input">
+                                Operator Input
+                            </option>
+
+                            <option value="sensor_network">
+                                Sensor Network
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label for="disaster-type">
+                            Disaster Type
+                        </label>
+
+                        <select id="disaster-type">
+
+                            <option value="explosion">
+                                Explosion
+                            </option>
+
+                            <option value="earthquake">
+                                Earthquake
+                            </option>
+
+                            <option value="flood">
+                                Flood
+                            </option>
+
+                            <option value="wildfire">
+                                Wildfire
+                            </option>
+
+                            <option value="building_collapse">
+                                Building Collapse
+                            </option>
+
+                            <option value="industrial_accident">
+                                Industrial Accident
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label for="incident-severity">
+                            Severity
+                        </label>
+
+                        <select id="incident-severity">
+
+                            <option value="moderate">
+                                Moderate
+                            </option>
+
+                            <option value="severe">
+                                Severe
+                            </option>
+
+                            <option
+                                value="critical"
+                                selected
+                            >
+                                Critical
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label for="incident-latitude">
+                            Latitude
+                        </label>
+
+                        <input
+                            id="incident-latitude"
+                            type="number"
+                            step="0.0001"
+                            value="47.490"
+                        >
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label for="incident-longitude">
+                            Longitude
+                        </label>
+
+                        <input
+                            id="incident-longitude"
+                            type="number"
+                            step="0.0001"
+                            value="19.080"
+                        >
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label for="incident-radius">
+                            Affected Radius (km)
+                        </label>
+
+                        <input
+                            id="incident-radius"
+                            type="number"
+                            min="0.1"
+                            step="0.1"
+                            value="0.7"
+                        >
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label for="population-density">
+                            Population Density / km²
+                        </label>
+
+                        <input
+                            id="population-density"
+                            type="number"
+                            min="0"
+                            step="100"
+                            value="3200"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="incident-control-bottom">
+
+                    <div class="form-field">
+
+                        <label for="incident-description">
+                            Description
+                        </label>
+
+                        <input
+                            id="incident-description"
+                            type="text"
+                            value="Large emergency detected in dense urban area."
+                        >
+
+                    </div>
+
+
+                    <button
+                        id="inject-incident-button"
+                        class="inject-button"
+                        type="button"
+                    >
+                        Inject Incident
+                    </button>
+
+                </div>
+
+
+                <div class="simulation-actions">
+
+                    <button
+                        id="simulate-outage-button"
+                        class="simulation-button danger"
+                        type="button"
+                    >
+                        Simulate R01 Network Loss
+                    </button>
+
+                    <button
+                        id="reset-simulation-button"
+                        class="simulation-button"
+                        type="button"
+                    >
+                        Reset Simulation
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="incident-control-status"
+                    class="incident-control-status"
+                ></div>
+
+
+                {% if state.simulation.last_event %}
+
+                    <div class="simulation-event">
+
+                        <strong>
+                            Latest simulation event
+                        </strong>
+
+                        <span>
+                            {{
+                                state.simulation
+                                .last_event
+                                .message
+                            }}
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             REASSESSMENT
+        =================================================== -->
+
+        <section class="panel reassessment-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        INCIDENT REASSESSMENT
+                    </span>
+
+                    <h2>
+                        Situation Change Detection
+                    </h2>
+
+                </div>
+
+
+                <div
+                    class="
+                    reassessment-status
+                    reassessment-{{ state.reassessment.status }}
+                    "
+                >
+                    {{
+                        state.reassessment.status
+                        |replace("_", " ")
+                        |upper
+                    }}
+                </div>
+
+            </div>
+
+
+            <div class="reassessment-content">
+
+                {% if
+                    state.reassessment.requires_replanning
+                %}
+
+                    <div class="replanning-banner">
+
+                        <div class="replanning-icon">
+                            ↻
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Operational replanning triggered
+                            </strong>
+
+                            <span>
+
+                                ARES detected
+                                {{ state.reassessment.change_count }}
+                                meaningful changes and regenerated
+                                the operational response.
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="reassessment-stable">
+
+                        No significant incident change detected.
+                        Current operational plan remains valid.
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if state.reassessment.changes %}
+
+                    <div class="reassessment-change-list">
+
+                        {% for change in
+                            state.reassessment.changes
+                        %}
+
+                            <div
+                                class="
+                                reassessment-change
+                                change-{{ change.severity }}
+                                "
+                            >
+
+                                <div class="change-severity">
+                                    {{ change.severity|upper }}
+                                </div>
+
+                                <div class="change-message">
+                                    {{ change.message }}
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             IMPACT ZONES
+        =================================================== -->
+
+        <section class="panel impact-zone-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        DISASTER ASSESSMENT
+                    </span>
+
+                    <h2>
+                        Impact Zones
+                    </h2>
+
+                </div>
+
+                <div class="model-chip">
+                    MULTI-ZONE MODEL
+                </div>
+
+            </div>
+
+
+            <div class="impact-zone-grid">
+
+                {% for zone in state.impact_zones %}
+
+                    <div
+                        class="
+                        impact-zone-card
+                        impact-zone-{{ loop.index }}
+                        "
+                    >
+
+                        <div class="impact-zone-heading">
+
+                            <div class="impact-zone-indicator"></div>
+
+                            <div>
+
+                                <strong>
+                                    {{ zone.zone_name }}
+                                </strong>
+
+                                <span>
+
+                                    {{ zone.inner_radius_km }}
+                                    –
+                                    {{ zone.outer_radius_km }}
+                                    km
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="impact-zone-metrics">
+
+                            <div>
+
+                                <span>
+                                    Population
+                                </span>
+
+                                <strong>
+                                    {{ zone.estimated_population }}
+                                </strong>
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Casualties
+                                </span>
+
+                                <strong>
+                                    {{ zone.estimated_casualties }}
+                                </strong>
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Critical
+                                </span>
+
+                                <strong>
+                                    {{ zone.estimated_critical }}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="zone-assumption">
+
+                            <span>
+                                Prototype impact coefficient
+                            </span>
+
+                            <strong>
+                                {{
+                                    (
+                                        zone.casualty_rate
+                                        * 100
+                                    )|round|int
+                                }}%
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             MAP + RECOMMENDATION
+        =================================================== -->
+
+        <section class="primary-grid">
+
+
+            <article class="panel map-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="panel-eyebrow">
+                            OPERATIONAL PICTURE
+                        </span>
+
+                        <h2>
+                            Incident Map
+                        </h2>
+
+                    </div>
+
+                    <span class="live-chip">
+                        LIVE
+                    </span>
+
+                </div>
+
+
+                <div id="map"></div>
+
+
+                <div class="map-legend">
+
+                    <span>
+                        <i class="legend-dot severe"></i>
+                        Severe
+                    </span>
+
+                    <span>
+                        <i class="legend-dot major"></i>
+                        Major
+                    </span>
+
+                    <span>
+                        <i class="legend-dot peripheral"></i>
+                        Peripheral
+                    </span>
+
+                    <span>
+                        <i class="legend-dot responder"></i>
+                        Responder
+                    </span>
+
+                    <span>
+                        <i class="legend-dot hospital"></i>
+                        Hospital
+                    </span>
+
+                    <span>
+                        <i class="legend-dot relief"></i>
+                        Relief
+                    </span>
+
+                </div>
+
+            </article>
+
+
+            <article class="panel decision-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="panel-eyebrow">
+                            AI DECISION SUPPORT
+                        </span>
+
+                        <h2>
+                            ARES Recommendation
+                        </h2>
+
+                    </div>
+
+                    <div class="ai-badge">
+                        AI
+                    </div>
+
+                </div>
+
+
+                {% set selected =
+                    state.recommendation.selected_team
+                %}
+
+                {% set closest =
+                    state.recommendation.closest_team
+                %}
+
+
+                {% if selected %}
+
+                    <div class="recommendation-status">
+                        PRIMARY DEPLOYMENT
+                    </div>
+
+
+                    <div class="selected-unit">
+
+                        <div class="selected-rank">
+                            #1
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                {{ selected.name }}
+                            </strong>
+
+                            <span>
+
+                                {{ selected.team_type|title }}
+                                ·
+                                {{ selected.members }}
+                                responders
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="decision-facts">
+
+                        <div>
+
+                            <span>
+                                Distance
+                            </span>
+
+                            <strong>
+                                {{
+                                    selected
+                                    .distance_to_disaster_km
+                                }}
+                                km
+                            </strong>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Network
+                            </span>
+
+                            <strong class="good">
+                                REACHABLE
+                            </strong>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Zone
+                            </span>
+
+                            <strong>
+                                {{
+                                    selected
+                                    .geofence_status
+                                    or "unknown"
+                                    |upper
+                                }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    {% if
+                        state.recommendation
+                        .network_affected_decision
+                    %}
+
+                        <div class="network-decision">
+
+                            <div class="network-decision-icon">
+                                ⌁
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Network-aware dispatch override
+                                </strong>
+
+                                <p>
+
+                                    {{ closest.name }}
+                                    is geographically closer at
+                                    {{
+                                        closest
+                                        .distance_to_disaster_km
+                                    }}
+                                    km, but is currently
+                                    unreachable.
+
+                                    ARES therefore selected
+                                    {{ selected.name }}.
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+                {% else %}
+
+                    <div class="no-response">
+
+                        No reachable responder is currently
+                        available.
+
+                    </div>
+
+                {% endif %}
+
+            </article>
+
+        </section>
+
+
+        <!-- ==================================================
+             RESPONDERS
+        =================================================== -->
+
+        <section class="panel responder-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        RESOURCE INTELLIGENCE
+                    </span>
+
+                    <h2>
+                        Responder Status
+                    </h2>
+
+                </div>
+
+                <div class="api-chip">
+                    Nokia Network Intelligence
+                </div>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                    <tr>
+                        <th>Priority</th>
+                        <th>Unit</th>
+                        <th>Type</th>
+                        <th>Personnel</th>
+                        <th>Distance</th>
+                        <th>Network Status</th>
+                        <th>Zone Status</th>
+                        <th>Connectivity</th>
+                        <th>Decision</th>
+                    </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                    {% for responder in state.responders %}
+
+                        <tr
+                            class="
+                            {% if not responder.reachable %}
+                            row-disabled
+                            {% endif %}
+                            "
+                        >
+
+                            <td>
+
+                                {% if responder.rank %}
+
+                                    <span class="rank-badge">
+                                        #{{ responder.rank }}
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="rank-none">
+                                        —
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="unit-name">
+                                    {{ responder.name }}
+                                </div>
+
+                                <div class="unit-id">
+                                    {{ responder.team_id }}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+                                {{ responder.team_type|title }}
+                            </td>
+
+
+                            <td>
+                                {{ responder.members }}
+                            </td>
+
+
+                            <td>
+
+                                {% if
+                                    responder
+                                    .distance_to_disaster_km
+                                    is not none
+                                %}
+
+                                    {{
+                                        responder
+                                        .distance_to_disaster_km
+                                    }}
+                                    km
+
+                                {% else %}
+
+                                    —
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if responder.reachable %}
+
+                                    <span
+                                        class="
+                                        status-badge
+                                        reachable
+                                        "
+                                    >
+                                        Reachable
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="
+                                        status-badge
+                                        unreachable
+                                        "
+                                    >
+                                        Disconnected
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if
+                                    responder.geofence_status
+                                    == "inside"
+                                %}
+
+                                    <span class="zone-badge inside">
+                                        INSIDE ZONE
+                                    </span>
+
+                                {% elif
+                                    responder.geofence_status
+                                    == "outside"
+                                %}
+
+                                    <span class="zone-badge outside">
+                                        OUTSIDE ZONE
+                                    </span>
+
+                                {% elif
+                                    responder.geofence_status
+                                    == "initializing"
+                                %}
+
+                                    <span class="zone-badge initializing">
+                                        INITIALIZING
+                                    </span>
+
+                                {% elif
+                                    responder.geofence_status
+                                    == "subscription_ended"
+                                %}
+
+                                    <span class="zone-badge unknown">
+                                        MONITORING ENDED
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="zone-badge unknown">
+                                        UNKNOWN
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if responder.connectivity %}
+
+                                    {{
+                                        responder
+                                        .connectivity
+                                        |join(" + ")
+                                    }}
+
+                                {% else %}
+
+                                    —
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if responder.rank == 1 %}
+
+                                    <span
+                                        class="
+                                        decision-badge
+                                        selected
+                                        "
+                                    >
+                                        SELECTED
+                                    </span>
+
+                                {% elif responder.reachable %}
+
+                                    <span
+                                        class="
+                                        decision-badge
+                                        standby
+                                        "
+                                    >
+                                        STANDBY
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="
+                                        decision-badge
+                                        excluded
+                                        "
+                                    >
+                                        EXCLUDED
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             GEOFENCING
+        =================================================== -->
+
+        <section class="panel geofence-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        NOKIA OPEN GATEWAY
+                    </span>
+
+                    <h2>
+                        Geofencing Intelligence
+                    </h2>
+
+                </div>
+
+                <div class="api-chip">
+                    CAMARA Geofencing
+                </div>
+
+            </div>
+
+
+            <div class="geofence-content">
+
+                {% if state.geofencing.events %}
+
+                    {% for event in
+                        state.geofencing.events[:5]
+                    %}
+
+                        <div class="geofence-event">
+
+                            <div
+                                class="
+                                geofence-event-icon
+
+                                {% if
+                                    event.geofence_status
+                                    == 'inside'
+                                %}
+                                entered
+
+                                {% elif
+                                    event.geofence_status
+                                    == 'initializing'
+                                %}
+                                initializing
+
+                                {% else %}
+                                left
+                                {% endif %}
+                                "
+                            >
+                                ⌖
+                            </div>
+
+
+                            <div class="geofence-event-main">
+
+                                <strong>
+                                    {{
+                                        event.team_name
+                                        or "Unknown Device"
+                                    }}
+                                </strong>
+
+                                <span>
+
+                                    {% if
+                                        event.geofence_status
+                                        == "inside"
+                                    %}
+
+                                        Entered operational disaster zone
+
+                                    {% elif
+                                        event.geofence_status
+                                        == "outside"
+                                    %}
+
+                                        Left operational disaster zone
+
+                                    {% elif
+                                        event.geofence_status
+                                        == "initializing"
+                                    %}
+
+                                        Initial geofence state being resolved
+
+                                    {% else %}
+
+                                        Geofence event received
+
+                                    {% endif %}
+
+                                </span>
+
+                            </div>
+
+
+                            <div class="geofence-event-meta">
+
+                                <span>
+                                    {{ event.team_id or "—" }}
+                                </span>
+
+                                <strong>
+                                    {{
+                                        event.geofence_status
+                                        |upper
+                                    }}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="geofence-empty">
+
+                        Waiting for Nokia geofencing events...
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             RESPONSE PLAN
+        =================================================== -->
+
+        <section class="panel response-plan-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        AI OPERATIONAL PLANNING
+                    </span>
+
+                    <h2>
+                        ARES Response Plan
+                    </h2>
+
+                </div>
+
+                <div class="ai-badge">
+                    AI
+                </div>
+
+            </div>
+
+
+            <div class="response-plan-content">
+
+                <div class="plan-block">
+
+                    <div class="plan-block-title">
+                        Recommended Deployment
+                    </div>
+
+                    <div class="plan-metrics">
+
+                        <div class="plan-metric">
+
+                            <span>
+                                Medical Teams
+                            </span>
+
+                            <strong>
+                                {{
+                                    state.response_plan
+                                    .recommended_resources
+                                    .medical_teams
+                                }}
+                            </strong>
+
+                        </div>
+
+                        <div class="plan-metric">
+
+                            <span>
+                                Ambulances
+                            </span>
+
+                            <strong>
+                                {{
+                                    state.response_plan
+                                    .recommended_resources
+                                    .ambulances
+                                }}
+                            </strong>
+
+                        </div>
+
+                        <div class="plan-metric">
+
+                            <span>
+                                Volunteers
+                            </span>
+
+                            <strong>
+                                {{
+                                    state.response_plan
+                                    .recommended_resources
+                                    .volunteers
+                                }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="plan-block">
+
+                    <div class="plan-block-title">
+                        Responder Assignments
+                    </div>
+
+                    <div class="assignment-list">
+
+                        {% for assignment in
+                            state.response_plan
+                            .responder_assignments
+                        %}
+
+                            <div class="assignment-card">
+
+                                <div class="assignment-priority">
+                                    #{{ assignment.priority }}
+                                </div>
+
+                                <div class="assignment-main">
+
+                                    <strong>
+                                        {{ assignment.name }}
+                                    </strong>
+
+                                    <span>
+                                        {{ assignment.mission }}
+                                    </span>
+
+                                </div>
+
+                                <div class="assignment-meta">
+
+                                    <span>
+                                        {{ assignment.distance_km }}
+                                        km
+                                    </span>
+
+                                    <span class="assignment-network">
+                                        {{
+                                            assignment
+                                            .network_status
+                                            |upper
+                                        }}
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+
+                <div class="plan-block">
+
+                    <div class="plan-block-title">
+                        Critical Patient Allocation
+                    </div>
+
+                    <div class="hospital-plan-grid">
+
+                        {% for allocation in
+                            state.response_plan
+                            .hospital_allocations
+                        %}
+
+                            <div class="hospital-plan-card">
+
+                                <div>
+
+                                    <strong>
+                                        {{
+                                            allocation
+                                            .hospital_name
+                                        }}
+                                    </strong>
+
+                                    <span>
+                                        {{
+                                            allocation
+                                            .hospital_id
+                                        }}
+                                    </span>
+
+                                </div>
+
+                                <div class="hospital-plan-value">
+
+                                    <strong>
+                                        {{
+                                            allocation
+                                            .allocated_critical_patients
+                                        }}
+                                    </strong>
+
+                                    <span>
+                                        critical patients
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+
+                <div class="plan-block">
+
+                    <div class="plan-block-title">
+                        Operational Reserve
+                    </div>
+
+                    <div class="reserve-grid">
+
+                        <div>
+
+                            <span>
+                                Medical Teams
+                            </span>
+
+                            <strong>
+                                {{
+                                    state.response_plan
+                                    .reserve_resources
+                                    .medical_teams
+                                }}
+                            </strong>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Ambulances
+                            </span>
+
+                            <strong>
+                                {{
+                                    state.response_plan
+                                    .reserve_resources
+                                    .ambulances
+                                }}
+                            </strong>
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Volunteers
+                            </span>
+
+                            <strong>
+                                {{
+                                    state.response_plan
+                                    .reserve_resources
+                                    .volunteers
+                                }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {% if
+                    state.response_plan
+                    .unallocated_critical_patients
+                    > 0
+                %}
+
+                    <div class="capacity-warning">
+
+                        <strong>
+                            Capacity Warning
+                        </strong>
+
+                        <span>
+
+                            {{
+                                state.response_plan
+                                .unallocated_critical_patients
+                            }}
+                            critical patients exceed
+                            current hospital capacity.
+
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             ESCALATION
+        =================================================== -->
+
+        <section class="panel escalation-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        RESOURCE ESCALATION
+                    </span>
+
+                    <h2>
+                        Reinforcement Status
+                    </h2>
+
+                </div>
+
+                <div
+                    class="
+                    escalation-status
+                    escalation-{{ state.resource_escalation.status }}
+                    "
+                >
+                    {{
+                        state.resource_escalation
+                        .status
+                        |replace("_", " ")
+                        |upper
+                    }}
+                </div>
+
+            </div>
+
+
+            <div class="escalation-content">
+
+                {% if
+                    state.resource_escalation.alerts
+                %}
+
+                    <div class="escalation-alerts">
+
+                        {% for alert in
+                            state.resource_escalation.alerts
+                        %}
+
+                            <div
+                                class="
+                                escalation-alert
+                                alert-{{ alert.severity }}
+                                "
+                            >
+
+                                <div class="alert-severity">
+                                    {{ alert.severity|upper }}
+                                </div>
+
+                                <div class="alert-message">
+                                    {{ alert.message }}
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="escalation-stable-box">
+
+                        Local resources currently satisfy
+                        estimated response demand.
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if
+                    state.resource_escalation
+                    .reinforcement_requests
+                %}
+
+                    <div class="reinforcement-title">
+                        Recommended Reinforcements
+                    </div>
+
+                    <div class="reinforcement-grid">
+
+                        {% for reinforcement in
+                            state.resource_escalation
+                            .reinforcement_requests
+                        %}
+
+                            <div class="reinforcement-card">
+
+                                <div class="reinforcement-header">
+
+                                    <strong>
+                                        {{
+                                            reinforcement
+                                            .resource_type
+                                            |replace("_", " ")
+                                            |title
+                                        }}
+                                    </strong>
+
+                                    <span>
+                                        {{
+                                            reinforcement
+                                            .priority
+                                            |upper
+                                        }}
+                                    </span>
+
+                                </div>
+
+                                <div class="reinforcement-quantity">
+                                    {{
+                                        reinforcement
+                                        .required_quantity
+                                    }}
+                                </div>
+
+                                <p>
+                                    {{
+                                        reinforcement
+                                        .action
+                                    }}
+                                </p>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+        <!-- ==================================================
+     REGIONAL REINFORCEMENT
+=================================================== -->
+
+<section class="panel regional-reinforcement-panel">
+
+    <div class="panel-header">
+
+        <div>
+
+            <span class="panel-eyebrow">
+                REGIONAL RESPONSE ORCHESTRATION
+            </span>
+
+            <h2>
+                Reinforcement Allocation
+            </h2>
+
+        </div>
+
+        <div
+            class="
+            regional-status
+            regional-{{ state.regional_reinforcement.status }}
+            "
+        >
+            {{
+                state.regional_reinforcement.status
+                |replace("_", " ")
+                |upper
+            }}
+        </div>
+
+    </div>
+
+
+    <div class="regional-reinforcement-content">
+
+        {% if
+            state.regional_reinforcement.status
+            == "not_required"
+        %}
+
+            <div class="regional-stable-box">
+
+                No regional reinforcement is currently required.
+                Local resources satisfy estimated operational demand.
+
+            </div>
+
+        {% else %}
+
+            <!-- ==========================================
+                 SUMMARY
+            =========================================== -->
+
+            <div class="regional-summary-grid">
+
+                <div class="regional-summary-card">
+
+                    <span>
+                        Additional Beds
+                    </span>
+
+                    <strong>
+                        {{
+                            state.regional_reinforcement
+                            .summary
+                            .additional_hospital_capacity
+                        }}
+                    </strong>
+
+                </div>
+
+
+                <div class="regional-summary-card">
+
+                    <span>
+                        Ambulances
+                    </span>
+
+                    <strong>
+                        {{
+                            state.regional_reinforcement
+                            .summary
+                            .additional_ambulances
+                        }}
+                    </strong>
+
+                </div>
+
+
+                <div class="regional-summary-card">
+
+                    <span>
+                        Medical Teams
+                    </span>
+
+                    <strong>
+                        {{
+                            state.regional_reinforcement
+                            .summary
+                            .additional_medical_teams
+                        }}
+                    </strong>
+
+                </div>
+
+
+                <div class="regional-summary-card">
+
+                    <span>
+                        Volunteers
+                    </span>
+
+                    <strong>
+                        {{
+                            state.regional_reinforcement
+                            .summary
+                            .additional_volunteers
+                        }}
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- ==========================================
+                 HOSPITAL ALLOCATIONS
+            =========================================== -->
+
+            {% if
+                state.regional_reinforcement
+                .hospital_allocations
+            %}
+
+                <div class="regional-section-title">
+                    Regional Hospital Support
+                </div>
+
+                <div class="regional-allocation-list">
+
+                    {% for allocation in
+                        state.regional_reinforcement
+                        .hospital_allocations
+                    %}
+
+                        <div class="regional-allocation-card">
+
+                            <div class="regional-allocation-icon hospital">
+                                +
+                            </div>
+
+                            <div class="regional-allocation-main">
+
+                                <strong>
+                                    {{ allocation.hospital_name }}
+                                </strong>
+
+                                <span>
+
+                                    Receive
+                                    {{ allocation.allocated_capacity }}
+                                    overflow critical patients
+
+                                </span>
+
+                            </div>
+
+                            <div class="regional-allocation-meta">
+
+    <span>
+        {{ allocation.distance_km }} km
+    </span>
+
+    <strong>
+        +{{ allocation.allocated_capacity }} beds
+    </strong>
+
+    {% if allocation.optimization_score is defined %}
+
+        <small>
+            Optimization score:
+            {{ allocation.optimization_score }}
+        </small>
+
+    {% endif %}
+
+</div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+
+            <!-- ==========================================
+                 RELIEF CENTER ALLOCATIONS
+            =========================================== -->
+
+            {% if
+                state.regional_reinforcement
+                .relief_allocations
+            %}
+
+                <div class="regional-section-title">
+                    Regional Relief Support
+                </div>
+
+                <div class="regional-allocation-list">
+
+                    {% for allocation in
+                        state.regional_reinforcement
+                        .relief_allocations
+                    %}
+
+                        <div class="regional-allocation-card">
+
+                            <div class="regional-allocation-icon relief">
+                                ↗
+                            </div>
+
+                            <div class="regional-allocation-main">
+
+                                <strong>
+                                    {{ allocation.center_name }}
+                                </strong>
+
+                                <span>
+                                    {{ allocation.mission }}
+                                </span>
+
+                            </div>
+
+                            <div class="regional-allocation-meta">
+
+    <span>
+        {{ allocation.distance_km }} km
+    </span>
+
+    <strong>
+
+        {{ allocation.quantity }}
+        {{ allocation.resource_type|replace("_", " ") }}
+
+    </strong>
+
+    {% if allocation.optimization_score is defined %}
+
+        <small>
+            Optimization score:
+            {{ allocation.optimization_score }}
+        </small>
+
+    {% endif %}
+
+</div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+
+            <!-- ==========================================
+                 UNMET DEMAND
+            =========================================== -->
+
+            {% if
+                state.regional_reinforcement
+                .unmet_requirements
+            %}
+
+                <div class="regional-shortage-box">
+
+                    <strong>
+                        Regional capacity still insufficient
+                    </strong>
+
+                    {% for shortage in
+                        state.regional_reinforcement
+                        .unmet_requirements
+                    %}
+
+                        <span>
+
+                            {{
+                                shortage.remaining_quantity
+                            }}
+
+                            additional
+
+                            {{
+                                shortage.resource_type
+                                |replace("_", " ")
+                            }}
+
+                            remain unallocated.
+
+                        </span>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="regional-covered-box">
+
+                    <strong>
+                        Reinforcement demand fully covered
+                    </strong>
+
+                    <span>
+                        Regional resources can satisfy all
+                        currently detected local shortages.
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+        {% endif %}
+
+    </div>
+
+</section>
+        <!-- ==================================================
+             STRATEGY
+        =================================================== -->
+
+        <section class="panel strategy-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        AI COMMAND SEQUENCE
+                    </span>
+
+                    <h2>
+                        Operational Strategy
+                    </h2>
+
+                </div>
+
+                <div class="ai-badge">
+                    AI
+                </div>
+
+            </div>
+
+
+            <div class="strategy-content">
+
+                <div class="strategy-summary">
+
+                    <span>
+                        INCIDENT
+                    </span>
+
+                    <strong>
+                        {{
+                            state.operational_strategy
+                            .incident
+                        }}
+                    </strong>
+
+                    <div class="strategy-severity">
+
+                        {{
+                            state.operational_strategy
+                            .severity
+                            |upper
+                        }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="strategy-timeline">
+
+                    {% for action in
+                        state.operational_strategy.actions
+                    %}
+
+                        <div
+                            class="
+                            strategy-step
+
+                            {% if
+                                action.category
+                                == 'Network Constraint'
+                            %}
+                            network-step
+
+                            {% elif
+                                action.category
+                                == 'Capacity Warning'
+                            %}
+                            warning-step
+
+                            {% endif %}
+                            "
+                        >
+
+                            <div class="strategy-number">
+                                {{ action.priority }}
+                            </div>
+
+                            <div class="strategy-line"></div>
+
+                            <div class="strategy-body">
+
+                                <div class="strategy-category">
+                                    {{ action.category }}
+                                </div>
+
+                                <strong>
+                                    {{ action.title }}
+                                </strong>
+
+                                <p>
+                                    {{ action.description }}
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             HOSPITAL + RELIEF
+        =================================================== -->
+
+        <section class="secondary-grid">
+
+
+            <article class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="panel-eyebrow">
+                            MEDICAL INFRASTRUCTURE
+                        </span>
+
+                        <h2>
+                            Hospital Capacity
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="resource-list">
+
+                    {% for hospital in state.hospitals %}
+
+                        {% set percentage =
+                            (
+                                hospital.available_capacity
+                                /
+                                hospital.total_capacity
+                                *
+                                100
+                            )|round|int
+                        %}
+
+                        <div class="resource-item">
+
+                            <div class="resource-top">
+
+                                <div>
+
+                                    <strong>
+                                        {{ hospital.name }}
+                                    </strong>
+
+                                    <span>
+                                        {{
+                                            hospital
+                                            .hospital_id
+                                        }}
+                                    </span>
+
+                                </div>
+
+                                <strong>
+                                    {{
+                                        hospital
+                                        .available_capacity
+                                    }}
+                                    beds
+                                </strong>
+
+                            </div>
+
+                            <div class="capacity-track">
+
+                                <div
+                                    class="capacity-fill"
+                                    data-capacity="{{ percentage }}"
+                                ></div>
+
+                            </div>
+
+                            <div class="resource-footer">
+
+                                <span>
+                                    Available capacity
+                                </span>
+
+                                <span>
+                                    {{ percentage }}%
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </article>
+
+
+            <article class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="panel-eyebrow">
+                            RESPONSE INFRASTRUCTURE
+                        </span>
+
+                        <h2>
+                            Relief Resources
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                {% for center in state.relief_centers %}
+
+                    <div class="relief-center">
+
+                        <div class="relief-heading">
+
+                            <div class="relief-icon">
+                                +
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    {{ center.name }}
+                                </strong>
+
+                                <span>
+                                    {{ center.center_id }}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        <div class="relief-metrics">
+
+                            <div>
+
+                                <span>
+                                    Volunteers
+                                </span>
+
+                                <strong>
+                                    {{
+                                        center
+                                        .available_volunteers
+                                    }}
+                                </strong>
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Medical Teams
+                                </span>
+
+                                <strong>
+                                    {{
+                                        center
+                                        .available_medical_teams
+                                    }}
+                                </strong>
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Ambulances
+                                </span>
+
+                                <strong>
+                                    {{
+                                        center
+                                        .available_ambulances
+                                    }}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </article>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<script
+    id="ares-state"
+    type="application/json"
+>
+{{ state|tojson }}
+</script>
+
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
+
+
+<script
+    src="{{ url_for('static', filename='js/dashboard.js') }}"
+></script>
+
+
+</body>
+
+</html>
