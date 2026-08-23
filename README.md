@@ -370,7 +370,7 @@ ARES/
 ## 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/majd2006/ARES.git
 cd ARES
 ```
 
@@ -671,3 +671,4 @@ ARES — AI-Powered Adaptive Emergency Response System
 ARES is an experimental decision-support prototype developed for the MENA Ignite Open Gateway Hackathon 2026.
 
 It is not intended to autonomously replace emergency commanders, medical personnel, or official public-safety decision-making systems.
+
