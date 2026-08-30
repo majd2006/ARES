@@ -18,18 +18,6 @@ from app.models.resources import DisasterZone
 
 
 class ARESOrchestrator:
-    """
-    Central orchestration layer for ARES V2.
-
-    Responsibilities:
-    1. Assess an incident.
-    2. Evaluate responder network availability.
-    3. Orchestrate CAMARA API usage.
-    4. Build an operational disaster zone.
-    5. Generate a response plan.
-    6. Generate an operational strategy.
-    7. Return one unified decision object.
-    """
 
     def __init__(self):
 
@@ -50,30 +38,26 @@ class ARESOrchestrator:
         )
 
     # ======================================================
-    # INTERNAL HELPERS
+    # SERIALIZATION
     # ======================================================
 
     @staticmethod
     def _serialize(value):
-        """
-        Convert dataclass objects into JSON-friendly
-        dictionaries when required.
-        """
 
         if is_dataclass(value):
             return asdict(value)
 
         return value
 
+    # ======================================================
+    # DISASTER ZONE
+    # ======================================================
+
     @staticmethod
     def _build_disaster_zone(
         incident,
         assessment,
     ):
-        """
-        Convert the disaster assessment into the
-        DisasterZone model expected by downstream agents.
-        """
 
         return DisasterZone(
             zone_id=(
@@ -116,7 +100,12 @@ class ARESOrchestrator:
         self,
         responders,
         incident,
+        offline_team_ids=None,
     ):
+
+        offline_team_ids = set(
+            offline_team_ids or []
+        )
 
         evaluated_responders = []
 
@@ -137,37 +126,83 @@ class ARESOrchestrator:
                 )
             )
 
+            result = {
+                "team_id":
+                    responder.team_id,
+
+                "name":
+                    responder.name,
+
+                "team_type":
+                    responder.team_type,
+
+                "members":
+                    responder.members,
+
+                "available":
+                    responder.available,
+
+                "phone_number":
+                    responder.phone_number,
+
+                **network_evaluation,
+            }
+
+            # ------------------------------------------
+            # RUNTIME NETWORK OVERRIDE
+            #
+            # Used for live incident events such as
+            # a communications outage.
+            #
+            # This is intentionally separate from:
+            # responder.available
+            #
+            # because operational availability and
+            # telecom reachability are different states.
+            # ------------------------------------------
+
+            if (
+                responder.team_id
+                in offline_team_ids
+            ):
+
+                result[
+                    "reachable"
+                ] = False
+
+                result[
+                    "connectivity"
+                ] = []
+
+                result[
+                    "eligible_for_deployment"
+                ] = False
+
+                result[
+                    "runtime_network_override"
+                ] = True
+
+                result[
+                    "runtime_network_status"
+                ] = "forced_unreachable"
+
+            else:
+
+                result[
+                    "runtime_network_override"
+                ] = False
+
+                result[
+                    "runtime_network_status"
+                ] = None
+
             evaluated_responders.append(
-                {
-                    "team_id":
-                        responder.team_id,
-
-                    "name":
-                        responder.name,
-
-                    "team_type":
-                        responder.team_type,
-
-                    "members":
-                        responder.members,
-
-                    "available":
-                        responder.available,
-
-                    "phone_number":
-                        responder.phone_number,
-
-                    **network_evaluation,
-                }
+                result
             )
 
-        # --------------------------------------------------
-        # RANK RESPONDERS
-        #
-        # Eligible responders appear first.
-        # Within the same eligibility group,
-        # nearest responders appear first.
-        # --------------------------------------------------
+        # ----------------------------------------------
+        # RE-RANK AFTER RUNTIME OVERRIDES
+        # ----------------------------------------------
 
         evaluated_responders.sort(
             key=lambda responder: (
@@ -194,16 +229,16 @@ class ARESOrchestrator:
 
         tool_trace = []
 
-        for responder in evaluated_responders:
+        for responder in (
+            evaluated_responders
+        ):
 
-            responder_trace = (
+            for tool_event in (
                 responder.get(
                     "tool_trace",
                     [],
                 )
-            )
-
-            for tool_event in responder_trace:
+            ):
 
                 tool_trace.append(
                     {
@@ -224,7 +259,55 @@ class ARESOrchestrator:
         return tool_trace
 
     # ======================================================
-    # MAIN ORCHESTRATION PIPELINE
+    # RUNTIME EVENTS
+    # ======================================================
+
+    @staticmethod
+    def build_runtime_events(
+        evaluated_responders,
+    ):
+
+        events = []
+
+        for responder in (
+            evaluated_responders
+        ):
+
+            if responder.get(
+                "runtime_network_override"
+            ):
+
+                events.append(
+                    {
+                        "type":
+                            "network_outage",
+
+                        "team_id":
+                            responder[
+                                "team_id"
+                            ],
+
+                        "team_name":
+                            responder[
+                                "name"
+                            ],
+
+                        "status":
+                            "unreachable",
+
+                        "message":
+                            (
+                                f"{responder['name']} "
+                                "lost operational "
+                                "network connectivity."
+                            ),
+                    }
+                )
+
+        return events
+
+    # ======================================================
+    # MAIN PIPELINE
     # ======================================================
 
     def run_incident(
@@ -233,15 +316,16 @@ class ARESOrchestrator:
         responders,
         hospitals,
         relief_centers,
+        offline_team_ids=None,
     ):
 
         started_at = datetime.now(
             timezone.utc
         )
 
-        # --------------------------------------------------
+        # ----------------------------------------------
         # 1. DISASTER ASSESSMENT
-        # --------------------------------------------------
+        # ----------------------------------------------
 
         assessment = (
             self.assessment_agent
@@ -266,9 +350,9 @@ class ARESOrchestrator:
             )
         )
 
-        # --------------------------------------------------
-        # 2. CREATE OPERATIONAL DISASTER ZONE
-        # --------------------------------------------------
+        # ----------------------------------------------
+        # 2. OPERATIONAL ZONE
+        # ----------------------------------------------
 
         disaster_zone = (
             self._build_disaster_zone(
@@ -277,20 +361,25 @@ class ARESOrchestrator:
             )
         )
 
-        # --------------------------------------------------
-        # 3. NETWORK-AWARE RESPONDER EVALUATION
-        # --------------------------------------------------
+        # ----------------------------------------------
+        # 3. NETWORK-AWARE RESPONDER ANALYSIS
+        # ----------------------------------------------
 
         evaluated_responders = (
             self.evaluate_responders(
                 responders=responders,
+
                 incident=incident,
+
+                offline_team_ids=(
+                    offline_team_ids
+                ),
             )
         )
 
-        # --------------------------------------------------
-        # 4. CAMARA ORCHESTRATION TRACE
-        # --------------------------------------------------
+        # ----------------------------------------------
+        # 4. CAMARA TRACE
+        # ----------------------------------------------
 
         tool_trace = (
             self.build_tool_trace(
@@ -337,9 +426,19 @@ class ARESOrchestrator:
             )
         )
 
-        # --------------------------------------------------
-        # 5. RESPONSE PLANNING
-        # --------------------------------------------------
+        # ----------------------------------------------
+        # 5. RUNTIME EVENTS
+        # ----------------------------------------------
+
+        runtime_events = (
+            self.build_runtime_events(
+                evaluated_responders
+            )
+        )
+
+        # ----------------------------------------------
+        # 6. RESPONSE PLAN
+        # ----------------------------------------------
 
         response_plan = (
             self.response_planning_agent
@@ -360,9 +459,9 @@ class ARESOrchestrator:
             )
         )
 
-        # --------------------------------------------------
-        # 6. OPERATIONAL STRATEGY
-        # --------------------------------------------------
+        # ----------------------------------------------
+        # 7. OPERATIONAL STRATEGY
+        # ----------------------------------------------
 
         operational_strategy = (
             self.operational_strategy_agent
@@ -394,9 +493,9 @@ class ARESOrchestrator:
             2,
         )
 
-        # --------------------------------------------------
-        # 7. UNIFIED ARES DECISION
-        # --------------------------------------------------
+        # ==================================================
+        # FINAL UNIFIED DECISION
+        # ==================================================
 
         return {
 
@@ -424,9 +523,9 @@ class ARESOrchestrator:
                     duration_ms,
             },
 
-            # --------------------------------------------------
-            # AGENTIC CAMARA ORCHESTRATION
-            # --------------------------------------------------
+            # ----------------------------------------------
+            # AGENTIC / CAMARA
+            # ----------------------------------------------
 
             "agentic_orchestration": {
 
@@ -446,8 +545,8 @@ class ARESOrchestrator:
 
                     (
                         "Request Location Retrieval "
-                        "only for responders that are "
-                        "network reachable."
+                        "only for network-reachable "
+                        "responders."
                     ),
 
                     (
@@ -458,9 +557,15 @@ class ARESOrchestrator:
 
                     (
                         "Use registered responder "
-                        "coordinates as a degraded "
-                        "fallback when Location "
-                        "Retrieval fails."
+                        "coordinates as degraded "
+                        "fallback if live location "
+                        "retrieval fails."
+                    ),
+
+                    (
+                        "Recalculate deployment "
+                        "decisions when runtime "
+                        "network state changes."
                     ),
                 ],
 
@@ -477,9 +582,16 @@ class ARESOrchestrator:
                     tool_trace,
             },
 
-            # --------------------------------------------------
+            # ----------------------------------------------
+            # RUNTIME OPERATIONAL EVENTS
+            # ----------------------------------------------
+
+            "runtime_events":
+                runtime_events,
+
+            # ----------------------------------------------
             # INCIDENT
-            # --------------------------------------------------
+            # ----------------------------------------------
 
             "incident": {
 
@@ -516,41 +628,21 @@ class ARESOrchestrator:
                     incident.description,
             },
 
-            # --------------------------------------------------
-            # DISASTER ASSESSMENT
-            # --------------------------------------------------
-
             "assessment":
                 self._serialize(
                     assessment
                 ),
-
-            # --------------------------------------------------
-            # OPERATIONAL ZONE
-            # --------------------------------------------------
 
             "disaster_zone":
                 self._serialize(
                     disaster_zone
                 ),
 
-            # --------------------------------------------------
-            # RESPONDERS
-            # --------------------------------------------------
-
             "responders":
                 evaluated_responders,
 
-            # --------------------------------------------------
-            # RESPONSE PLAN
-            # --------------------------------------------------
-
             "response_plan":
                 response_plan,
-
-            # --------------------------------------------------
-            # OPERATIONAL STRATEGY
-            # --------------------------------------------------
 
             "operational_strategy":
                 operational_strategy,
