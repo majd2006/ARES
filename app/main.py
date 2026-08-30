@@ -1,5 +1,12 @@
 from datetime import datetime
+from app.models.resources import DisasterZone
+from app.orchestration.ares_orchestrator import (
+    ARESOrchestrator,
+)
 
+from app.orchestration.decision_replanner import (
+    DecisionReplanner,
+)
 from flask import Flask, jsonify, render_template, request
 
 from app.agents.incident_ingestion_agent import (
@@ -63,6 +70,12 @@ strategy_agent = OperationalStrategyAgent()
 escalation_agent = ResourceEscalationAgent()
 regional_reinforcement_agent = RegionalReinforcementAgent()
 
+# ==========================================================
+# ARES V2 ORCHESTRATION
+# ==========================================================
+
+ares_orchestrator = ARESOrchestrator()
+decision_replanner = DecisionReplanner()
 
 # ==========================================================
 # ACTIVE INCIDENT
@@ -96,7 +109,15 @@ simulation_state = {
     "offline_teams": set(),
     "last_event": None,
 }
+# ==========================================================
+# ARES V2 REPLANNING STATE
+# ==========================================================
 
+replanning_state = {
+    "previous_decision": None,
+    "current_decision": None,
+    "last_result": None,
+}
 
 # ==========================================================
 # INCIDENT REASSESSMENT STATE
@@ -1473,38 +1494,104 @@ def simulate_network_outage():
         "team_id"
     )
 
+    # ======================================================
+    # VALIDATION
+    # ======================================================
+
     if not team_id:
 
         return jsonify(
             {
-                "status":
-                    "error",
-
-                "message":
-                    "team_id is required.",
+                "status": "error",
+                "message": (
+                    "team_id is required."
+                ),
             }
         ), 400
 
-    valid_team_ids = {
-        responder.team_id
-        for responder
-        in responder_teams
+    responder_lookup = {
+        responder.team_id: responder
+        for responder in responder_teams
     }
 
-    if team_id not in valid_team_ids:
+    if team_id not in responder_lookup:
+
+        return jsonify(
+            {
+                "status": "error",
+                "message": (
+                    "Unknown responder team: "
+                    f"{team_id}"
+                ),
+            }
+        ), 404
+
+    selected_responder = (
+        responder_lookup[
+            team_id
+        ]
+    )
+
+    # ======================================================
+    # DUPLICATE EVENT PROTECTION
+    # ======================================================
+
+    if (
+        team_id
+        in simulation_state[
+            "offline_teams"
+        ]
+    ):
 
         return jsonify(
             {
                 "status":
-                    "error",
+                    "already_offline",
 
                 "message":
                     (
-                        "Unknown responder team: "
-                        f"{team_id}"
+                        f"{team_id} is already "
+                        "marked offline."
                     ),
+
+                "dashboard_state":
+                    build_dashboard_state(),
             }
-        ), 404
+        ), 200
+
+    # ======================================================
+    # DECISION 1 — BEFORE NETWORK FAILURE
+    # ======================================================
+
+    previous_offline_teams = set(
+        simulation_state[
+            "offline_teams"
+        ]
+    )
+
+    previous_decision = (
+        ares_orchestrator.run_incident(
+            incident=active_incident,
+
+            responders=(
+                responder_teams
+            ),
+
+            hospitals=hospitals,
+
+            relief_centers=(
+                relief_centers
+            ),
+
+            offline_team_ids=(
+                previous_offline_teams
+            ),
+        )
+    )
+
+    # ======================================================
+    # REGISTER NETWORK EVENT
+    # ======================================================
 
     simulation_state[
         "offline_teams"
@@ -1512,39 +1599,139 @@ def simulate_network_outage():
         team_id
     )
 
-    simulation_state[
-        "last_event"
-    ] = {
-
+    event = {
         "type":
             "network_outage",
 
         "team_id":
             team_id,
 
+        "team_name":
+            selected_responder.name,
+
+        "timestamp":
+            datetime.utcnow()
+            .isoformat()
+            + "Z",
+
         "message":
             (
-                f"{team_id} lost network "
-                "connectivity. ARES "
-                "automatically triggered "
-                "responder replanning."
+                f"{selected_responder.name} "
+                "lost operational network "
+                "connectivity."
             ),
     }
+
+    simulation_state[
+        "last_event"
+    ] = event
+
+    # ======================================================
+    # DECISION 2 — AFTER NETWORK FAILURE
+    # ======================================================
+
+    current_decision = (
+        ares_orchestrator.run_incident(
+            incident=active_incident,
+
+            responders=(
+                responder_teams
+            ),
+
+            hospitals=hospitals,
+
+            relief_centers=(
+                relief_centers
+            ),
+
+            offline_team_ids=(
+                simulation_state[
+                    "offline_teams"
+                ]
+            ),
+        )
+    )
+
+    # ======================================================
+    # EXPLAIN DECISION CHANGE
+    # ======================================================
+
+    replanning_result = (
+        decision_replanner.compare(
+            previous_decision=(
+                previous_decision
+            ),
+
+            current_decision=(
+                current_decision
+            ),
+
+            trigger={
+                "type":
+                    "network_outage",
+
+                "team_id":
+                    team_id,
+
+                "team_name":
+                    selected_responder.name,
+
+                "source":
+                    "live_demo_simulation",
+            },
+        )
+    )
+
+    # ======================================================
+    # STORE V2 REPLANNING STATE
+    # ======================================================
+
+    replanning_state[
+        "previous_decision"
+    ] = previous_decision
+
+    replanning_state[
+        "current_decision"
+    ] = current_decision
+
+    replanning_state[
+        "last_result"
+    ] = replanning_result
+
+    # ======================================================
+    # RESPONSE
+    # ======================================================
 
     return jsonify(
         {
             "status":
                 "accepted",
 
+            "message":
+                (
+                    "Network outage detected. "
+                    "ARES completed dynamic "
+                    "operational replanning."
+                ),
+
             "event":
-                simulation_state[
-                    "last_event"
-                ],
+                event,
+
+            "replanning":
+                replanning_result,
+
+            "decision": {
+                "previous":
+                    previous_decision,
+
+                "current":
+                    current_decision,
+            },
 
             "dashboard_state":
                 build_dashboard_state(),
         }
-    )
+    ), 200
 
 
 # ==========================================================
