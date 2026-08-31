@@ -18,6 +18,12 @@ const state =
         stateElement.textContent
     );
 
+const commandApproval =
+    state.command_approval || {};
+
+const currentDecisionVersion =
+    commandApproval.decision_version;
+
 const incident =
     state.incident;
 
@@ -1145,6 +1151,379 @@ if (demoNetworkButton) {
                     team_id:
                         "R01"
                 }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   HUMAN-IN-THE-LOOP COMMAND AUTHORIZATION
+========================================================= */
+
+const approveCommandButton =
+    document.getElementById(
+        "approve-command-button"
+    );
+
+const modifyCommandButton =
+    document.getElementById(
+        "modify-command-button"
+    );
+
+const rejectCommandButton =
+    document.getElementById(
+        "reject-command-button"
+    );
+
+const confirmModificationButton =
+    document.getElementById(
+        "confirm-modification-button"
+    );
+
+const commandModificationPanel =
+    document.getElementById(
+        "command-modification-panel"
+    );
+
+const commandApprovalFeedback =
+    document.getElementById(
+        "command-approval-feedback"
+    );
+
+
+function getCommandInputValue(id) {
+
+    const element =
+        document.getElementById(id);
+
+    return element
+        ? element.value.trim()
+        : "";
+}
+
+
+function showCommandFeedback(
+    message,
+    type
+) {
+
+    if (!commandApprovalFeedback) {
+        return;
+    }
+
+    commandApprovalFeedback.textContent =
+        message;
+
+    commandApprovalFeedback.className =
+        `command-approval-feedback ${type}`;
+}
+
+
+function setCommandButtonsDisabled(
+    disabled
+) {
+
+    [
+        approveCommandButton,
+        modifyCommandButton,
+        rejectCommandButton,
+        confirmModificationButton
+    ]
+    .forEach(
+        (button) => {
+
+            if (button) {
+                button.disabled =
+                    disabled;
+            }
+        }
+    );
+}
+
+
+async function submitCommandAction(
+    url,
+    payload,
+    successMessage
+) {
+
+    setCommandButtonsDisabled(
+        true
+    );
+
+    showCommandFeedback(
+        "Recording command authorization...",
+        "success"
+    );
+
+    try {
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method:
+                        "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                result.message
+                ||
+                "Command authorization failed."
+            );
+        }
+
+
+        showCommandFeedback(
+            successMessage,
+            "success"
+        );
+
+
+        setTimeout(
+            () => {
+
+                window.location.reload();
+
+            },
+            450
+        );
+
+    }
+
+    catch (error) {
+
+        showCommandFeedback(
+            error.message,
+            "error"
+        );
+
+        setCommandButtonsDisabled(
+            false
+        );
+    }
+}
+
+
+if (approveCommandButton) {
+
+    approveCommandButton.addEventListener(
+        "click",
+        () => {
+
+            const commander =
+                getCommandInputValue(
+                    "commander-name"
+                )
+                ||
+                "Incident Commander";
+
+            const notes =
+                getCommandInputValue(
+                    "command-notes"
+                );
+
+
+            submitCommandAction(
+                "/api/command/approve",
+
+                {
+    commander,
+
+    notes:
+        notes || null,
+
+    decision_version:
+        currentDecisionVersion
+},
+
+                "Operational plan authorized. Refreshing decision state..."
+            );
+        }
+    );
+}
+
+
+if (rejectCommandButton) {
+
+    rejectCommandButton.addEventListener(
+        "click",
+        () => {
+
+            const commander =
+                getCommandInputValue(
+                    "commander-name"
+                )
+                ||
+                "Incident Commander";
+
+            const notes =
+                getCommandInputValue(
+                    "command-notes"
+                );
+
+
+            submitCommandAction(
+                "/api/command/reject",
+
+                {
+    commander,
+
+    notes:
+        notes
+        ||
+        "Current recommendation rejected by incident command.",
+
+    decision_version:
+        currentDecisionVersion
+},
+                "Operational plan rejected. Refreshing decision state..."
+            );
+        }
+    );
+}
+
+
+if (
+    modifyCommandButton
+    &&
+    commandModificationPanel
+) {
+
+    modifyCommandButton.addEventListener(
+        "click",
+        () => {
+
+            commandModificationPanel
+                .classList
+                .toggle(
+                    "open"
+                );
+
+            if (
+                commandModificationPanel
+                .classList
+                .contains(
+                    "open"
+                )
+            ) {
+
+                showCommandFeedback(
+                    (
+                        "Enter the commander adjustment, "
+                        + "then confirm the modification."
+                    ),
+                    "success"
+                );
+
+            } else {
+
+                commandApprovalFeedback.className =
+                    "command-approval-feedback";
+
+                commandApprovalFeedback.textContent =
+                    "";
+            }
+        }
+    );
+}
+
+
+if (confirmModificationButton) {
+
+    confirmModificationButton.addEventListener(
+        "click",
+        () => {
+
+            const commander =
+                getCommandInputValue(
+                    "commander-name"
+                )
+                ||
+                "Incident Commander";
+
+            const notes =
+                getCommandInputValue(
+                    "command-notes"
+                );
+
+            const priorityTeam =
+                getCommandInputValue(
+                    "modified-priority-team"
+                );
+
+            const instruction =
+                getCommandInputValue(
+                    "modified-instruction"
+                );
+
+
+            if (!priorityTeam) {
+
+                showCommandFeedback(
+                    "Select a reachable priority team.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            if (!instruction) {
+
+                showCommandFeedback(
+                    "Enter an operational modification instruction.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            submitCommandAction(
+                "/api/command/modify",
+
+                {
+    commander,
+
+    notes:
+        notes
+        ||
+        "Commander-authorized operational modification.",
+
+    decision_version:
+        currentDecisionVersion,
+
+    modifications: {
+        priority_team:
+            priorityTeam,
+
+        instruction:
+            instruction
+    }
+},
+                
+
+                "Commander modification recorded. Refreshing decision state..."
             );
         }
     );

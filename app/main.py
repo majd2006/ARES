@@ -1951,25 +1951,50 @@ def approve_command():
         "notes"
     )
 
-    result = (
-        command_approval_manager.approve(
-            commander=commander,
-            notes=notes,
-        )
+    decision_version = data.get(
+        "decision_version"
     )
 
-    return jsonify(
-        {
-            "status":
-                "approved",
+    try:
 
-            "approval":
-                result,
+        result = (
+            command_approval_manager.approve(
+                commander=commander,
+                notes=notes,
+                decision_version=(
+                    decision_version
+                ),
+            )
+        )
 
-            "dashboard_state":
-                build_dashboard_state(),
-        }
-    ), 200
+        return jsonify(
+            {
+                "status":
+                    "approved",
+
+                "approval":
+                    result,
+
+                "dashboard_state":
+                    build_dashboard_state(),
+            }
+        ), 200
+
+    except ValueError as error:
+
+        return jsonify(
+            {
+                "status":
+                    "error",
+
+                "message":
+                    str(error),
+
+                "command_approval":
+                    command_approval_manager
+                    .get_state(),
+            }
+        ), 400
 
 
 @app.route(
@@ -1991,25 +2016,118 @@ def reject_command():
         "notes"
     )
 
-    result = (
-        command_approval_manager.reject(
-            commander=commander,
-            notes=notes,
-        )
+    decision_version = data.get(
+        "decision_version"
     )
 
-    return jsonify(
-        {
-            "status":
-                "rejected",
+    try:
 
-            "approval":
-                result,
+        result = (
+            command_approval_manager.reject(
+                commander=commander,
+                notes=notes,
+                decision_version=(
+                    decision_version
+                ),
+            )
+        )
 
-            "dashboard_state":
-                build_dashboard_state(),
-        }
-    ), 200
+        return jsonify(
+            {
+                "status":
+                    "rejected",
+
+                "approval":
+                    result,
+
+                "dashboard_state":
+                    build_dashboard_state(),
+            }
+        ), 200
+
+    except ValueError as error:
+
+        return jsonify(
+            {
+                "status":
+                    "error",
+
+                "message":
+                    str(error),
+
+                "command_approval":
+                    command_approval_manager
+                    .get_state(),
+            }
+        ), 400
+
+
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    commander = (
+        data.get("commander")
+        or "Incident Commander"
+    )
+
+    notes = data.get(
+        "notes"
+    )
+
+    decision_version = data.get(
+        "decision_version"
+    )
+
+    modifications = data.get(
+        "modifications",
+        {},
+    )
+
+    try:
+
+        result = (
+            command_approval_manager.modify(
+                commander=commander,
+                modifications=(
+                    modifications
+                ),
+                notes=notes,
+                decision_version=(
+                    decision_version
+                ),
+            )
+        )
+
+        return jsonify(
+            {
+                "status":
+                    "modified",
+
+                "approval":
+                    result,
+
+                "dashboard_state":
+                    build_dashboard_state(),
+            }
+        ), 200
+
+    except ValueError as error:
+
+        return jsonify(
+            {
+                "status":
+                    "error",
+
+                "message":
+                    str(error),
+
+                "command_approval":
+                    command_approval_manager
+                    .get_state(),
+            }
+        ), 400
 
 
 @app.route(
