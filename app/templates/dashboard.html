@@ -2547,7 +2547,7 @@
             <div>
 
                 <strong>
-                    ARES autonomous response
+                    ARES automated replanning
                 </strong>
 
                 <p>
@@ -2555,9 +2555,10 @@
                     A material operational state change
                     was detected. ARES re-evaluated
                     responder viability, regenerated the
-                    deployment plan, and updated response
-                    priorities while preserving the
-                    incident command objective.
+                    recommended deployment plan, and
+                    updated response priorities. Human
+                    authorization remains required before
+                    operational execution.
 
                 </p>
 
@@ -2570,6 +2571,422 @@
 </section>
 
 {% endif %}
+
+        <!-- ==================================================
+             HUMAN-IN-THE-LOOP COMMAND AUTHORIZATION
+        =================================================== -->
+
+        {% set approval = state.command_approval %}
+
+        <section class="panel command-approval-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-eyebrow">
+                        HUMAN-IN-THE-LOOP CONTROL
+                    </span>
+
+                    <h2>
+                        Command Authorization
+                    </h2>
+
+                </div>
+
+                <div
+                    class="
+                    command-approval-status
+                    approval-{{ approval.status }}
+                    "
+                >
+                    {{
+                        approval.status
+                        |replace("_", " ")
+                        |upper
+                    }}
+                </div>
+
+            </div>
+
+
+            <div class="command-approval-content">
+
+                <!-- ==========================================
+                     DECISION STATE
+                =========================================== -->
+
+                <div class="command-decision-summary">
+
+                    <div class="command-decision-metric">
+
+                        <span>
+                            Decision Version
+                        </span>
+
+                        <strong>
+                            v{{ approval.decision_version }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="command-decision-metric">
+
+                        <span>
+                            Authorized Version
+                        </span>
+
+                        <strong>
+
+                            {% if approval.approved_version %}
+
+                                v{{ approval.approved_version }}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="command-decision-metric">
+
+                        <span>
+                            Commander
+                        </span>
+
+                        <strong>
+                            {{
+                                approval.commander
+                                or "Awaiting authorization"
+                            }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ==========================================
+                     AUTHORIZATION STATE
+                =========================================== -->
+
+                {% if approval.status == "pending_approval" %}
+
+                    <div class="command-safety-message pending">
+
+                        <div class="command-safety-icon">
+                            !
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Human authorization required
+                            </strong>
+
+                            <p>
+                                ARES has generated an operational
+                                recommendation. Deployment remains
+                                subject to authorization by the
+                                responsible incident commander.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                {% elif approval.status == "approved" %}
+
+                    <div class="command-safety-message approved">
+
+                        <div class="command-safety-icon">
+                            ✓
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Operational plan authorized
+                            </strong>
+
+                            <p>
+                                Decision version
+                                v{{ approval.approved_version }}
+                                was authorized by
+                                {{ approval.commander }}.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                {% elif approval.status == "modified" %}
+
+                    <div class="command-safety-message modified">
+
+                        <div class="command-safety-icon">
+                            ✎
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Commander modification recorded
+                            </strong>
+
+                            <p>
+                                The ARES recommendation was
+                                accepted with a human operational
+                                adjustment recorded in the
+                                authorization log.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                {% elif approval.status == "rejected" %}
+
+                    <div class="command-safety-message rejected">
+
+                        <div class="command-safety-icon">
+                            ×
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Operational plan rejected
+                            </strong>
+
+                            <p>
+                                The current ARES recommendation
+                                is not authorized for operational
+                                execution.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+
+                <!-- ==========================================
+                     COMMANDER INPUT
+                =========================================== -->
+
+                <div class="command-input-grid">
+
+                    <div class="form-field">
+
+                        <label for="commander-name">
+                            Commander
+                        </label>
+
+                        <input
+                            id="commander-name"
+                            type="text"
+                            value="Incident Commander"
+                        >
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label for="command-notes">
+                            Command Notes
+                        </label>
+
+                        <input
+                            id="command-notes"
+                            type="text"
+                            placeholder="Optional authorization notes"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <!-- ==========================================
+                     COMMAND ACTIONS
+                =========================================== -->
+
+                <div class="command-approval-actions">
+
+                    <button
+                        id="approve-command-button"
+                        class="command-button approve"
+                        type="button"
+                    >
+                        Approve Plan
+                    </button>
+
+                    <button
+                        id="modify-command-button"
+                        class="command-button modify"
+                        type="button"
+                    >
+                        Modify Plan
+                    </button>
+
+                    <button
+                        id="reject-command-button"
+                        class="command-button reject"
+                        type="button"
+                    >
+                        Reject Plan
+                    </button>
+
+                </div>
+
+
+                <!-- ==========================================
+                     MODIFICATION CONTROLS
+                =========================================== -->
+
+                <div
+                    id="command-modification-panel"
+                    class="command-modification-panel"
+                >
+
+                    <div class="command-modification-grid">
+
+                        <div class="form-field">
+
+                            <label for="modified-priority-team">
+                                Priority Team
+                            </label>
+
+                            <select id="modified-priority-team">
+
+                                {% for responder in state.responders %}
+
+                                    {% if responder.reachable %}
+
+                                        <option
+                                            value="{{ responder.team_id }}"
+                                        >
+                                            {{ responder.team_id }}
+                                            —
+                                            {{ responder.name }}
+                                        </option>
+
+                                    {% endif %}
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-field">
+
+                            <label for="modified-instruction">
+                                Operational Instruction
+                            </label>
+
+                            <input
+                                id="modified-instruction"
+                                type="text"
+                                placeholder="Example: Increase rescue priority"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="command-modification-footer">
+
+                        <span>
+                            Modifications are recorded as
+                            commander-authorized overrides.
+                        </span>
+
+                        <button
+                            id="confirm-modification-button"
+                            class="command-button confirm-modification"
+                            type="button"
+                        >
+                            Confirm Modification
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="command-approval-feedback"
+                    class="command-approval-feedback"
+                ></div>
+
+
+                <!-- ==========================================
+                     AUDIT TRAIL
+                =========================================== -->
+
+                {% if approval.history %}
+
+                    <div class="command-history">
+
+                        <div class="command-history-title">
+                            Latest Authorization Event
+                        </div>
+
+                        {% set latest = approval.history[0] %}
+
+                        <div class="command-history-entry">
+
+                            <div>
+
+                                <strong>
+                                    {{
+                                        latest.action
+                                        |replace("_", " ")
+                                        |upper
+                                    }}
+                                </strong>
+
+                                <span>
+                                    Decision
+                                    v{{ latest.decision_version }}
+
+                                    {% if latest.commander %}
+                                        · {{ latest.commander }}
+                                    {% endif %}
+                                </span>
+
+                            </div>
+
+                            {% if latest.notes %}
+
+                                <p>
+                                    {{ latest.notes }}
+                                </p>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
         <!-- ==================================================
              STRATEGY
         =================================================== -->
