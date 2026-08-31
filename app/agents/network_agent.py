@@ -25,6 +25,37 @@ class NetworkIntelligenceAgent:
                 phone_number
             )
 
+            # ------------------------------------------
+            # RESPONSE VALIDATION
+            # ------------------------------------------
+
+            if not isinstance(
+                result,
+                dict,
+            ):
+
+                raise ValueError(
+                    "Device Reachability returned "
+                    "an invalid response."
+                )
+
+            if "reachable" not in result:
+
+                raise ValueError(
+                    "Device Reachability response "
+                    "does not contain 'reachable'."
+                )
+
+            if not isinstance(
+                result.get("reachable"),
+                bool,
+            ):
+
+                raise ValueError(
+                    "Device Reachability returned "
+                    "an invalid reachable value."
+                )
+
             duration_ms = round(
                 (
                     time.perf_counter()
@@ -124,15 +155,83 @@ class NetworkIntelligenceAgent:
                 phone_number
             )
 
+            # ------------------------------------------
+            # RESPONSE VALIDATION
+            # ------------------------------------------
+
+            if not isinstance(
+                result,
+                dict,
+            ):
+
+                raise ValueError(
+                    "Location Retrieval returned "
+                    "an invalid response."
+                )
+
             area = result.get(
-                "area",
-                {},
+                "area"
             )
 
+            if not isinstance(
+                area,
+                dict,
+            ):
+
+                raise ValueError(
+                    "Location Retrieval response "
+                    "does not contain a valid area."
+                )
+
             center = area.get(
-                "center",
-                {},
+                "center"
             )
+
+            if not isinstance(
+                center,
+                dict,
+            ):
+
+                raise ValueError(
+                    "Location Retrieval response "
+                    "does not contain a valid center."
+                )
+
+            latitude = center.get(
+                "latitude"
+            )
+
+            longitude = center.get(
+                "longitude"
+            )
+
+            if (
+                not isinstance(
+                    latitude,
+                    (int, float),
+                )
+                or
+                not isinstance(
+                    longitude,
+                    (int, float),
+                )
+            ):
+
+                raise ValueError(
+                    "Location Retrieval returned "
+                    "invalid coordinates."
+                )
+
+            if not (
+                -90 <= latitude <= 90
+                and
+                -180 <= longitude <= 180
+            ):
+
+                raise ValueError(
+                    "Location Retrieval returned "
+                    "coordinates outside valid ranges."
+                )
 
             duration_ms = round(
                 (
@@ -147,14 +246,10 @@ class NetworkIntelligenceAgent:
                     phone_number,
 
                 "latitude":
-                    center.get(
-                        "latitude"
-                    ),
+                    latitude,
 
                 "longitude":
-                    center.get(
-                        "longitude"
-                    ),
+                    longitude,
 
                 "radius_m":
                     area.get(
