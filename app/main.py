@@ -1,12 +1,5 @@
-from datetime import datetime
-from app.models.resources import DisasterZone
-from app.orchestration.ares_orchestrator import (
-    ARESOrchestrator,
-)
+﻿from datetime import datetime
 
-from app.orchestration.decision_replanner import (
-    DecisionReplanner,
-)
 from flask import Flask, jsonify, render_template, request
 
 from app.agents.incident_ingestion_agent import (
@@ -44,6 +37,14 @@ from app.agents.regional_reinforcement_agent import (
 
 from app.models.resources import DisasterZone
 
+from app.orchestration.ares_orchestrator import (
+    ARESOrchestrator,
+)
+
+from app.orchestration.decision_replanner import (
+    DecisionReplanner,
+)
+
 from data.demo_scenario import (
     responder_teams,
     hospitals,
@@ -70,12 +71,14 @@ strategy_agent = OperationalStrategyAgent()
 escalation_agent = ResourceEscalationAgent()
 regional_reinforcement_agent = RegionalReinforcementAgent()
 
+
 # ==========================================================
 # ARES V2 ORCHESTRATION
 # ==========================================================
 
 ares_orchestrator = ARESOrchestrator()
 decision_replanner = DecisionReplanner()
+
 
 # ==========================================================
 # ACTIVE INCIDENT
@@ -109,6 +112,8 @@ simulation_state = {
     "offline_teams": set(),
     "last_event": None,
 }
+
+
 # ==========================================================
 # ARES V2 REPLANNING STATE
 # ==========================================================
@@ -118,6 +123,7 @@ replanning_state = {
     "current_decision": None,
     "last_result": None,
 }
+
 
 # ==========================================================
 # INCIDENT REASSESSMENT STATE
@@ -275,6 +281,7 @@ def build_dashboard_state():
 
                 result["reachable"] = False
                 result["connectivity"] = []
+
                 result[
                     "eligible_for_deployment"
                 ] = False
@@ -368,7 +375,8 @@ def build_dashboard_state():
 
     eligible_responders = [
         responder
-        for responder in evaluated_responders
+        for responder
+        in evaluated_responders
         if responder.get(
             "eligible_for_deployment",
             False,
@@ -859,6 +867,28 @@ def build_dashboard_state():
                     "last_event"
                 ],
         },
+
+        # --------------------------------------------------
+        # ARES V2 DYNAMIC REPLANNING
+        # --------------------------------------------------
+
+        "dynamic_replanning": {
+
+            "active":
+                replanning_state[
+                    "last_result"
+                ] is not None,
+
+            "result":
+                replanning_state[
+                    "last_result"
+                ],
+
+            "current_decision":
+                replanning_state[
+                    "current_decision"
+                ],
+        },
     }
 
 
@@ -1085,6 +1115,7 @@ def create_incident():
         ] = reassessment_result
 
         # Rebuild so reassessment is included
+
         current_state = (
             build_dashboard_state()
         )
@@ -1347,8 +1378,7 @@ def receive_geofence_event():
             )
         )
 
-        # Nokia simulator can emit
-        # contradictory callbacks almost
+        # Nokia simulator can emit contradictory callbacks
         # immediately after subscription.
         # Treat these as initialization noise.
 
@@ -1445,6 +1475,7 @@ def receive_geofence_event():
     )
 
     # Keep only latest 20 events
+
     geofence_state[
         "events"
     ] = (
@@ -1502,27 +1533,34 @@ def simulate_network_outage():
 
         return jsonify(
             {
-                "status": "error",
-                "message": (
-                    "team_id is required."
-                ),
+                "status":
+                    "error",
+
+                "message":
+                    "team_id is required.",
             }
         ), 400
 
     responder_lookup = {
-        responder.team_id: responder
-        for responder in responder_teams
+        responder.team_id:
+            responder
+
+        for responder
+        in responder_teams
     }
 
     if team_id not in responder_lookup:
 
         return jsonify(
             {
-                "status": "error",
-                "message": (
-                    "Unknown responder team: "
-                    f"{team_id}"
-                ),
+                "status":
+                    "error",
+
+                "message":
+                    (
+                        "Unknown responder team: "
+                        f"{team_id}"
+                    ),
             }
         ), 404
 
@@ -1721,6 +1759,7 @@ def simulate_network_outage():
                 replanning_result,
 
             "decision": {
+
                 "previous":
                     previous_decision,
 
@@ -1762,6 +1801,22 @@ def reset_simulation():
                 "Nokia baseline state."
             ),
     }
+
+    # ======================================================
+    # RESET ARES V2 REPLANNING STATE
+    # ======================================================
+
+    replanning_state[
+        "previous_decision"
+    ] = None
+
+    replanning_state[
+        "current_decision"
+    ] = None
+
+    replanning_state[
+        "last_result"
+    ] = None
 
     return jsonify(
         {
@@ -1851,10 +1906,6 @@ def reset_geofencing():
 
 
 # ==========================================================
-# START SERVER
-# ==========================================================
-
-# ==========================================================
 # DEMO CONTROLLER
 # ==========================================================
 
@@ -1866,11 +1917,18 @@ def demo_reset():
 
     global active_incident
 
-    # Reset active incident
+    # ======================================================
+    # RESET ACTIVE INCIDENT
+    # ======================================================
+
     active_incident = IncidentInput(
         incident_id="INC-001",
         source="simulated_satellite_alert",
-        timestamp=datetime.utcnow().isoformat() + "Z",
+        timestamp=(
+            datetime.utcnow()
+            .isoformat()
+            + "Z"
+        ),
 
         latitude=47.490,
         longitude=19.080,
@@ -1886,7 +1944,10 @@ def demo_reset():
         ),
     )
 
-    # Reset network simulation
+    # ======================================================
+    # RESET NETWORK SIMULATION
+    # ======================================================
+
     simulation_state[
         "offline_teams"
     ].clear()
@@ -1894,18 +1955,44 @@ def demo_reset():
     simulation_state[
         "last_event"
     ] = {
-        "type": "demo_reset",
-        "message": (
-            "ARES demo state reset to baseline."
-        ),
+        "type":
+            "demo_reset",
+
+        "message":
+            (
+                "ARES demo state "
+                "reset to baseline."
+            ),
     }
 
-    # Reset reassessment
+    # ======================================================
+    # RESET ARES V2 REPLANNING STATE
+    # ======================================================
+
+    replanning_state[
+        "previous_decision"
+    ] = None
+
+    replanning_state[
+        "current_decision"
+    ] = None
+
+    replanning_state[
+        "last_result"
+    ] = None
+
+    # ======================================================
+    # RESET REASSESSMENT
+    # ======================================================
+
     reassessment_state[
         "last_result"
     ] = None
 
-    # Reset geofencing state
+    # ======================================================
+    # RESET GEOFENCING
+    # ======================================================
+
     geofence_state[
         "events"
     ].clear()
@@ -1920,12 +2007,18 @@ def demo_reset():
 
     return jsonify(
         {
-            "status": "reset",
+            "status":
+                "reset",
+
             "dashboard_state":
                 build_dashboard_state(),
         }
     )
 
+
+# ==========================================================
+# DEMO BASELINE
+# ==========================================================
 
 @app.route(
     "/api/demo/baseline",
@@ -1942,7 +2035,11 @@ def demo_baseline():
     active_incident = IncidentInput(
         incident_id="DEMO-BASELINE",
         source="simulated_satellite_alert",
-        timestamp=datetime.utcnow().isoformat() + "Z",
+        timestamp=(
+            datetime.utcnow()
+            .isoformat()
+            + "Z"
+        ),
 
         latitude=47.490,
         longitude=19.080,
@@ -1964,11 +2061,17 @@ def demo_baseline():
 
     reassessment_result = (
         reassessment_agent.compare(
-            previous_incident=
-                previous_state["incident"],
+            previous_incident=(
+                previous_state[
+                    "incident"
+                ]
+            ),
 
-            current_incident=
-                current_state["incident"],
+            current_incident=(
+                current_state[
+                    "incident"
+                ]
+            ),
         )
     )
 
@@ -1978,15 +2081,23 @@ def demo_baseline():
 
     return jsonify(
         {
-            "status": "accepted",
-            "message": (
-                "Baseline incident injected."
-            ),
+            "status":
+                "accepted",
+
+            "message":
+                (
+                    "Baseline incident injected."
+                ),
+
             "dashboard_state":
                 build_dashboard_state(),
         }
     )
 
+
+# ==========================================================
+# DEMO ESCALATION
+# ==========================================================
 
 @app.route(
     "/api/demo/escalate",
@@ -2003,7 +2114,11 @@ def demo_escalate():
     active_incident = IncidentInput(
         incident_id="DEMO-ESCALATED",
         source="simulated_satellite_alert",
-        timestamp=datetime.utcnow().isoformat() + "Z",
+        timestamp=(
+            datetime.utcnow()
+            .isoformat()
+            + "Z"
+        ),
 
         latitude=47.490,
         longitude=19.080,
@@ -2026,11 +2141,17 @@ def demo_escalate():
 
     reassessment_result = (
         reassessment_agent.compare(
-            previous_incident=
-                previous_state["incident"],
+            previous_incident=(
+                previous_state[
+                    "incident"
+                ]
+            ),
 
-            current_incident=
-                current_state["incident"],
+            current_incident=(
+                current_state[
+                    "incident"
+                ]
+            ),
         )
     )
 
@@ -2040,17 +2161,28 @@ def demo_escalate():
 
     return jsonify(
         {
-            "status": "accepted",
-            "message": (
-                "Incident escalated. "
-                "ARES recalculated the response."
-            ),
+            "status":
+                "accepted",
+
+            "message":
+                (
+                    "Incident escalated. "
+                    "ARES recalculated "
+                    "the response."
+                ),
+
             "reassessment":
                 reassessment_result,
+
             "dashboard_state":
                 build_dashboard_state(),
         }
     )
+
+
+# ==========================================================
+# START SERVER
+# ==========================================================
 
 if __name__ == "__main__":
 

@@ -2891,3 +2891,279 @@ td {
     }
 
 }
+/* ==========================================================
+   ARES V2 DYNAMIC REPLANNING
+========================================================== */
+
+.replanning-panel {
+    overflow: hidden;
+}
+
+.replanning-status {
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    background: rgba(45, 212, 191, 0.12);
+    border: 1px solid rgba(45, 212, 191, 0.28);
+}
+
+.replanning-content {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+
+/* ----------------------------------------------------------
+   TRIGGER
+---------------------------------------------------------- */
+
+.replanning-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 18px;
+
+    border-radius: 14px;
+
+    background:
+        rgba(255, 255, 255, 0.035);
+
+    border:
+        1px solid rgba(255, 255, 255, 0.08);
+}
+
+.replanning-trigger-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    opacity: 0.55;
+}
+
+.replanning-trigger-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.replanning-trigger-main strong {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+}
+
+.replanning-trigger-main span {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+
+/* ----------------------------------------------------------
+   METRICS
+---------------------------------------------------------- */
+
+.replanning-metrics {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.replanning-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+
+    padding: 15px;
+
+    border-radius: 12px;
+
+    background:
+        rgba(255, 255, 255, 0.025);
+
+    border:
+        1px solid rgba(255, 255, 255, 0.07);
+}
+
+.replanning-metric span {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+}
+
+.replanning-metric strong {
+    font-size: 20px;
+}
+
+
+/* ----------------------------------------------------------
+   DECISION DELTA
+---------------------------------------------------------- */
+
+.replanning-delta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.replanning-section-title {
+    margin-bottom: 3px;
+
+    font-size: 11px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+
+    opacity: 0.65;
+}
+
+.replanning-change {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+
+    padding: 14px;
+
+    border-radius: 12px;
+
+    background:
+        rgba(255, 255, 255, 0.025);
+
+    border:
+        1px solid rgba(255, 255, 255, 0.07);
+}
+
+.replanning-change-critical {
+    border-color:
+        rgba(255, 90, 103, 0.25);
+}
+
+.replanning-change-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+    font-weight: 900;
+
+    background:
+        rgba(255, 255, 255, 0.06);
+}
+
+.replanning-change-critical
+.replanning-change-icon {
+    background:
+        rgba(255, 90, 103, 0.12);
+}
+
+.replanning-change-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.replanning-change-type {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    opacity: 0.5;
+}
+
+.replanning-change-body strong {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.replanning-change-body span {
+    font-size: 11px;
+    opacity: 0.55;
+}
+
+
+/* ----------------------------------------------------------
+   AGENT EXPLANATION
+---------------------------------------------------------- */
+
+.replanning-explanation {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    padding: 16px;
+
+    border-radius: 12px;
+
+    background:
+        rgba(45, 212, 191, 0.05);
+
+    border:
+        1px solid rgba(45, 212, 191, 0.16);
+}
+
+.replanning-explanation-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 34px;
+
+    width: 34px;
+    height: 34px;
+
+    border-radius: 9px;
+
+    font-size: 11px;
+    font-weight: 900;
+
+    background:
+        rgba(45, 212, 191, 0.12);
+}
+
+.replanning-explanation strong {
+    font-size: 12px;
+}
+
+.replanning-explanation p {
+    margin:
+        5px 0 0;
+
+    font-size: 12px;
+    line-height: 1.55;
+    opacity: 0.68;
+}
+
+
+/* ----------------------------------------------------------
+   RESPONSIVE
+---------------------------------------------------------- */
+
+@media (
+    max-width: 760px
+) {
+
+    .replanning-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .replanning-trigger {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .replanning-trigger-main {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+    }
+}

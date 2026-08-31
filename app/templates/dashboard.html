@@ -2322,6 +2322,254 @@
     </div>
 
 </section>
+<!-- ==================================================
+     ARES V2 DYNAMIC REPLANNING
+=================================================== -->
+
+{% if
+    state.dynamic_replanning
+    and
+    state.dynamic_replanning.active
+    and
+    state.dynamic_replanning.result
+%}
+
+<section class="panel replanning-panel">
+
+    {% set replanning =
+        state.dynamic_replanning.result
+    %}
+
+    <div class="panel-header">
+
+        <div>
+
+            <span class="panel-eyebrow">
+                ARES V2 AGENTIC ORCHESTRATION
+            </span>
+
+            <h2>
+                Dynamic Replanning
+            </h2>
+
+        </div>
+
+        <div class="replanning-status">
+
+            {{
+                replanning.status
+                |replace("_", " ")
+                |upper
+            }}
+
+        </div>
+
+    </div>
+
+
+    <div class="replanning-content">
+
+        <!-- ==========================================
+             TRIGGER
+        =========================================== -->
+
+        <div class="replanning-trigger">
+
+            <div class="replanning-trigger-label">
+                OPERATIONAL TRIGGER
+            </div>
+
+            <div class="replanning-trigger-main">
+
+                <strong>
+
+                    {{
+                        replanning.trigger.type
+                        |replace("_", " ")
+                        |upper
+                    }}
+
+                </strong>
+
+                {% if replanning.trigger.team_name %}
+
+                    <span>
+                        {{ replanning.trigger.team_name }}
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- ==========================================
+             SUMMARY METRICS
+        =========================================== -->
+
+        <div class="replanning-metrics">
+
+            <div class="replanning-metric">
+
+                <span>
+                    Material Changes
+                </span>
+
+                <strong>
+                    {{
+                        replanning
+                        .material_change_count
+                    }}
+                </strong>
+
+            </div>
+
+
+            <div class="replanning-metric">
+
+                <span>
+                    Total Decision Changes
+                </span>
+
+                <strong>
+                    {{
+                        replanning
+                        .change_count
+                    }}
+                </strong>
+
+            </div>
+
+
+            <div class="replanning-metric">
+
+                <span>
+                    Replanning Required
+                </span>
+
+                <strong>
+                    {% if
+                        replanning
+                        .requires_replanning
+                    %}
+                        YES
+                    {% else %}
+                        NO
+                    {% endif %}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==========================================
+             DECISION DELTA
+        =========================================== -->
+
+        <div class="replanning-delta">
+
+            <div class="replanning-section-title">
+                Decision Delta
+            </div>
+
+            {% for change in replanning.changes %}
+
+                <div
+                    class="
+                    replanning-change
+                    replanning-change-{{ change.severity }}
+                    "
+                >
+
+                    <div class="replanning-change-icon">
+
+                        {% if
+                            change.severity
+                            == "critical"
+                        %}
+                            !
+                        {% else %}
+                            ↗
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="replanning-change-body">
+
+                        <div class="replanning-change-type">
+
+                            {{
+                                change.type
+                                |replace("_", " ")
+                                |upper
+                            }}
+
+                        </div>
+
+                        <strong>
+                            {{ change.message }}
+                        </strong>
+
+                        {% if change.team_id %}
+
+                            <span>
+                                {{ change.team_id }}
+
+                                {% if change.team_name %}
+                                    · {{ change.team_name }}
+                                {% endif %}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- ==========================================
+             AGENT EXPLANATION
+        =========================================== -->
+
+        <div class="replanning-explanation">
+
+            <div class="replanning-explanation-badge">
+                AI
+            </div>
+
+            <div>
+
+                <strong>
+                    ARES autonomous response
+                </strong>
+
+                <p>
+
+                    A material operational state change
+                    was detected. ARES re-evaluated
+                    responder viability, regenerated the
+                    deployment plan, and updated response
+                    priorities while preserving the
+                    incident command objective.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endif %}
         <!-- ==================================================
              STRATEGY
         =================================================== -->
