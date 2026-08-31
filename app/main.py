@@ -37,6 +37,10 @@ from app.agents.regional_reinforcement_agent import (
 
 from app.models.resources import DisasterZone
 
+from app.orchestration.command_approval import (
+    CommandApprovalManager,
+)
+
 from app.orchestration.ares_orchestrator import (
     ARESOrchestrator,
 )
@@ -78,6 +82,7 @@ regional_reinforcement_agent = RegionalReinforcementAgent()
 
 ares_orchestrator = ARESOrchestrator()
 decision_replanner = DecisionReplanner()
+command_approval_manager = CommandApprovalManager()
 
 
 # ==========================================================
@@ -889,6 +894,8 @@ def build_dashboard_state():
                     "current_decision"
                 ],
         },
+        "command_approval":
+            command_approval_manager.get_state(),
     }
 
 
@@ -1113,6 +1120,15 @@ def create_incident():
         reassessment_state[
             "last_result"
         ] = reassessment_result
+
+        if reassessment_result.get("requires_replanning"):
+
+            command_approval_manager.register_new_decision(
+                reason=(
+                    "ARES generated a revised operational "
+                    "decision after a material incident change."
+                )
+            )
 
         # Rebuild so reassessment is included
 
@@ -1736,6 +1752,12 @@ def simulate_network_outage():
         "last_result"
     ] = replanning_result
 
+    command_approval_manager.register_new_decision(
+        reason=(
+            "ARES generated a revised operational "
+            "decision after a network outage."
+        )
+    )
     # ======================================================
     # RESPONSE
     # ======================================================
@@ -1817,6 +1839,8 @@ def reset_simulation():
     replanning_state[
         "last_result"
     ] = None
+
+    command_approval_manager.reset()
 
     return jsonify(
         {
@@ -1904,6 +1928,152 @@ def reset_geofencing():
         }
     )
 
+# ==========================================================
+# COMMAND APPROVAL
+# ==========================================================
+
+@app.route(
+    "/api/command/approve",
+    methods=["POST"],
+)
+def approve_command():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    commander = (
+        data.get("commander")
+        or "Incident Commander"
+    )
+
+    notes = data.get(
+        "notes"
+    )
+
+    result = (
+        command_approval_manager.approve(
+            commander=commander,
+            notes=notes,
+        )
+    )
+
+    return jsonify(
+        {
+            "status":
+                "approved",
+
+            "approval":
+                result,
+
+            "dashboard_state":
+                build_dashboard_state(),
+        }
+    ), 200
+
+
+@app.route(
+    "/api/command/reject",
+    methods=["POST"],
+)
+def reject_command():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    commander = (
+        data.get("commander")
+        or "Incident Commander"
+    )
+
+    notes = data.get(
+        "notes"
+    )
+
+    result = (
+        command_approval_manager.reject(
+            commander=commander,
+            notes=notes,
+        )
+    )
+
+    return jsonify(
+        {
+            "status":
+                "rejected",
+
+            "approval":
+                result,
+
+            "dashboard_state":
+                build_dashboard_state(),
+        }
+    ), 200
+
+
+@app.route(
+    "/api/command/modify",
+    methods=["POST"],
+)
+def modify_command():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    commander = (
+        data.get("commander")
+        or "Incident Commander"
+    )
+
+    notes = data.get(
+        "notes"
+    )
+
+    modifications = data.get(
+        "modifications",
+        {},
+    )
+
+    if not isinstance(
+        modifications,
+        dict,
+    ):
+
+        return jsonify(
+            {
+                "status":
+                    "error",
+
+                "message":
+                    (
+                        "modifications "
+                        "must be a JSON object."
+                    ),
+            }
+        ), 400
+
+    result = (
+        command_approval_manager.modify(
+            commander=commander,
+            modifications=modifications,
+            notes=notes,
+        )
+    )
+
+    return jsonify(
+        {
+            "status":
+                "modified",
+
+            "approval":
+                result,
+
+            "dashboard_state":
+                build_dashboard_state(),
+        }
+    ), 200
 
 # ==========================================================
 # DEMO CONTROLLER
@@ -2005,6 +2175,8 @@ def demo_reset():
         "last_device_event"
     ].clear()
 
+    command_approval_manager.reset()
+    
     return jsonify(
         {
             "status":
@@ -2158,6 +2330,15 @@ def demo_escalate():
     reassessment_state[
         "last_result"
     ] = reassessment_result
+
+    if reassessment_result.get("requires_replanning"):
+
+        command_approval_manager.register_new_decision(
+            reason=(
+                "ARES generated a revised operational "
+                "decision after incident escalation."
+            )
+        )
 
     return jsonify(
         {
