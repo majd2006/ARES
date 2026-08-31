@@ -1241,6 +1241,40 @@ function setCommandButtonsDisabled(
     );
 }
 
+function applyCommandAuthorizationState() {
+
+    if (approveCommandButton) {
+        approveCommandButton.disabled =
+            commandApproval.can_approve !== true;
+    }
+
+    if (modifyCommandButton) {
+        modifyCommandButton.disabled =
+            commandApproval.can_modify !== true;
+    }
+
+    if (rejectCommandButton) {
+        rejectCommandButton.disabled =
+            commandApproval.can_reject !== true;
+    }
+
+    if (confirmModificationButton) {
+        confirmModificationButton.disabled =
+            commandApproval.can_modify !== true;
+    }
+
+    if (
+        commandApproval.can_modify !== true
+        &&
+        commandModificationPanel
+    ) {
+        commandModificationPanel
+            .classList
+            .remove("open");
+    }
+}
+
+applyCommandAuthorizationState();
 
 async function submitCommandAction(
     url,
@@ -1317,9 +1351,7 @@ async function submitCommandAction(
             "error"
         );
 
-        setCommandButtonsDisabled(
-            false
-        );
+        applyCommandAuthorizationState();
     }
 }
 
