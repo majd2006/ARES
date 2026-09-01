@@ -3639,3 +3639,422 @@ td {
     transform: none;
     box-shadow: none;
 }
+/* =========================================================
+   CAMARA / OPEN GATEWAY DECISION TRACE
+   ========================================================= */
+
+.camara-trace-panel {
+    position: relative;
+    overflow: hidden;
+}
+
+.camara-trace-panel::before {
+    content: "";
+
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 3px;
+    height: 100%;
+
+    background: var(--blue);
+}
+
+.camara-status-chip {
+    padding: 7px 10px;
+
+    color: var(--blue);
+
+    background:
+        rgba(86, 168, 255, 0.08);
+
+    border:
+        1px solid rgba(86, 168, 255, 0.18);
+
+    border-radius: 6px;
+
+    font-size: 7px;
+    font-weight: 800;
+
+    letter-spacing: 0.6px;
+}
+
+
+/* =========================================================
+   METRICS
+   ========================================================= */
+
+.camara-metrics {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 8px;
+
+    margin-top: 14px;
+}
+
+.camara-metric {
+    padding: 11px 12px;
+
+    background:
+        rgba(255, 255, 255, 0.018);
+
+    border:
+        1px solid var(--border-soft);
+
+    border-radius: 7px;
+}
+
+.camara-metric span {
+    display: block;
+
+    color: var(--text-muted);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+.camara-metric strong {
+    display: block;
+
+    margin-top: 5px;
+
+    font-size: 16px;
+}
+
+.camara-metric-success strong {
+    color: var(--accent);
+}
+
+.camara-metric-failed strong {
+    color: var(--danger);
+}
+
+.camara-metric-skipped strong {
+    color: var(--text-secondary);
+}
+
+
+/* =========================================================
+   POLICY
+   ========================================================= */
+
+.camara-policy-box {
+    margin-top: 12px;
+
+    padding: 13px;
+
+    background:
+        rgba(86, 168, 255, 0.035);
+
+    border:
+        1px solid rgba(86, 168, 255, 0.12);
+
+    border-radius: 8px;
+}
+
+.camara-policy-label,
+.camara-section-title,
+.camara-decision-effect-label {
+    color: var(--text-muted);
+
+    font-size: 7px;
+    font-weight: 800;
+
+    letter-spacing: 0.7px;
+
+    text-transform: uppercase;
+}
+
+.camara-policy-flow {
+    display: flex;
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-top: 9px;
+}
+
+.camara-policy-flow span:not(
+    .camara-policy-arrow
+) {
+    padding: 6px 8px;
+
+    color: var(--blue);
+
+    background:
+        var(--blue-soft);
+
+    border:
+        1px solid
+        rgba(86, 168, 255, 0.12);
+
+    border-radius: 5px;
+
+    font-size: 7px;
+    font-weight: 700;
+}
+
+.camara-policy-arrow {
+    color: var(--text-muted);
+
+    font-size: 10px;
+}
+
+.camara-policy-box p {
+    margin-top: 9px;
+
+    color: var(--text-secondary);
+
+    font-size: 8px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   TRACE LIST
+   ========================================================= */
+
+.camara-trace-list {
+    margin-top: 14px;
+}
+
+.camara-trace-row {
+    display: grid;
+
+    grid-template-columns:
+        160px
+        minmax(0, 1fr)
+        150px;
+
+    gap: 12px;
+
+    align-items: center;
+
+    margin-top: 7px;
+
+    padding: 11px 12px;
+
+    background:
+        rgba(255, 255, 255, 0.015);
+
+    border:
+        1px solid var(--border-soft);
+
+    border-radius: 7px;
+}
+
+.camara-trace-success {
+    border-left:
+        2px solid
+        rgba(45, 212, 191, 0.55);
+}
+
+.camara-trace-unreachable {
+    border-left:
+        2px solid
+        rgba(255, 90, 103, 0.65);
+}
+
+.camara-trace-failed {
+    border-left:
+        2px solid
+        rgba(255, 90, 103, 0.85);
+}
+
+.camara-trace-skipped {
+    opacity: 0.78;
+
+    border-left:
+        2px solid
+        rgba(255, 255, 255, 0.14);
+}
+
+.camara-trace-team strong {
+    display: block;
+
+    font-size: 8px;
+}
+
+.camara-trace-team span {
+    display: block;
+
+    margin-top: 3px;
+
+    color: var(--text-muted);
+
+    font-size: 7px;
+}
+
+.camara-tool-name {
+    display: block;
+
+    color: var(--text-primary);
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.camara-tool-reason {
+    display: block;
+
+    margin-top: 4px;
+
+    color: var(--text-muted);
+
+    font-size: 7px;
+
+    line-height: 1.45;
+}
+
+.camara-trace-result {
+    text-align: right;
+}
+
+.camara-result-badge {
+    display: inline-block;
+
+    padding: 5px 7px;
+
+    border-radius: 5px;
+
+    font-size: 6px;
+    font-weight: 800;
+
+    letter-spacing: 0.4px;
+}
+
+.camara-result-badge.success {
+    color: var(--accent);
+
+    background:
+        var(--accent-soft);
+
+    border:
+        1px solid
+        rgba(45, 212, 191, 0.12);
+}
+
+.camara-result-badge.unreachable,
+.camara-result-badge.failed {
+    color: var(--danger);
+
+    background:
+        var(--danger-soft);
+
+    border:
+        1px solid
+        rgba(255, 90, 103, 0.14);
+}
+
+.camara-result-badge.skipped,
+.camara-result-badge.neutral {
+    color: var(--text-secondary);
+
+    background:
+        rgba(255, 255, 255, 0.035);
+
+    border:
+        1px solid
+        var(--border-soft);
+}
+
+.camara-duration {
+    display: block;
+
+    margin-top: 5px;
+
+    color: var(--text-muted);
+
+    font-size: 6px;
+}
+
+
+/* =========================================================
+   DECISION EFFECT
+   ========================================================= */
+
+.camara-decision-effect {
+    display: grid;
+
+    grid-template-columns:
+        180px
+        minmax(0, 1fr);
+
+    gap: 15px;
+
+    align-items: center;
+
+    margin-top: 14px;
+
+    padding: 13px;
+
+    background:
+        rgba(255, 90, 103, 0.045);
+
+    border:
+        1px solid
+        rgba(255, 90, 103, 0.14);
+
+    border-radius: 8px;
+}
+
+.camara-decision-effect-main strong {
+    display: block;
+
+    color: var(--danger);
+
+    font-size: 9px;
+}
+
+.camara-decision-effect-main span {
+    display: block;
+
+    margin-top: 4px;
+
+    color: var(--text-secondary);
+
+    font-size: 8px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .camara-metrics {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .camara-trace-row {
+        grid-template-columns: 1fr;
+    }
+
+    .camara-trace-result {
+        text-align: left;
+    }
+
+    .camara-decision-effect {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+
+    .camara-metrics {
+        grid-template-columns: 1fr;
+    }
+}

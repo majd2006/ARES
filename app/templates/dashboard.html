@@ -2322,6 +2322,332 @@
     </div>
 
 </section>
+
+<!-- ==================================================
+     CAMARA / OPEN GATEWAY DECISION TRACE
+=================================================== -->
+
+{% if state.camara_observability %}
+
+<section class="panel camara-trace-panel">
+
+    {% set camara = state.camara_observability %}
+
+    <div class="panel-header">
+
+        <div>
+
+            <span class="panel-eyebrow">
+                OPEN GATEWAY OBSERVABILITY
+            </span>
+
+            <h2>
+                ARES Decision Trace
+            </h2>
+
+        </div>
+
+        <div class="camara-status-chip">
+
+            {% if camara.network_degraded %}
+                DEGRADED MODE
+            {% else %}
+                CAMARA LIVE
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ==========================================
+         SUMMARY METRICS
+    =========================================== -->
+
+    <div class="camara-metrics">
+
+        <div class="camara-metric">
+
+            <span>
+                CAMARA Calls
+            </span>
+
+            <strong>
+                {{ camara.total_calls }}
+            </strong>
+
+        </div>
+
+
+        <div class="camara-metric camara-metric-success">
+
+            <span>
+                Successful
+            </span>
+
+            <strong>
+                {{ camara.successful_calls }}
+            </strong>
+
+        </div>
+
+
+        <div class="camara-metric camara-metric-failed">
+
+            <span>
+                Failed
+            </span>
+
+            <strong>
+                {{ camara.failed_calls }}
+            </strong>
+
+        </div>
+
+
+        <div class="camara-metric camara-metric-skipped">
+
+            <span>
+                Policy Skips
+            </span>
+
+            <strong>
+                {{ camara.skipped_calls }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- ==========================================
+         ORCHESTRATION POLICY
+    =========================================== -->
+
+    <div class="camara-policy-box">
+
+        <div class="camara-policy-label">
+            AGENTIC TOOL POLICY
+        </div>
+
+        <div class="camara-policy-flow">
+
+            <span>
+                Device Reachability
+            </span>
+
+            <span class="camara-policy-arrow">
+                →
+            </span>
+
+            <span>
+                Reachable?
+            </span>
+
+            <span class="camara-policy-arrow">
+                →
+            </span>
+
+            <span>
+                Location Retrieval
+            </span>
+
+            <span class="camara-policy-arrow">
+                →
+            </span>
+
+            <span>
+                Deployment Decision
+            </span>
+
+        </div>
+
+        <p>
+            ARES invokes Location Retrieval only when
+            Device Reachability confirms that the responder
+            can receive operational communications.
+        </p>
+
+    </div>
+
+
+    <!-- ==========================================
+         TOOL TRACE
+    =========================================== -->
+
+    <div class="camara-trace-list">
+
+        <div class="camara-section-title">
+            Multi-API Execution Trace
+        </div>
+
+        {% for trace in camara.trace %}
+
+            <div
+                class="
+                    camara-trace-row
+
+                    {% if not trace.invoked %}
+                        camara-trace-skipped
+                    {% elif trace.success == false %}
+                        camara-trace-failed
+                    {% elif trace.result == 'unreachable' %}
+                        camara-trace-unreachable
+                    {% else %}
+                        camara-trace-success
+                    {% endif %}
+                "
+            >
+
+                <div class="camara-trace-team">
+
+                    <strong>
+                        {{ trace.team_id }}
+                    </strong>
+
+                    <span>
+                        {{ trace.team_name }}
+                    </span>
+
+                </div>
+
+
+                <div class="camara-trace-tool">
+
+                    <span class="camara-tool-name">
+                        {{ trace.tool }}
+                    </span>
+
+                    <span class="camara-tool-reason">
+                        {{ trace.reason }}
+                    </span>
+
+                </div>
+
+
+                <div class="camara-trace-result">
+
+                    {% if not trace.invoked %}
+
+                        <span class="camara-result-badge skipped">
+                            SKIPPED
+                        </span>
+
+                    {% elif trace.success == false %}
+
+                        <span class="camara-result-badge failed">
+                            FAILED
+                        </span>
+
+                    {% elif trace.result == "unreachable" %}
+
+                        <span class="camara-result-badge unreachable">
+                            UNREACHABLE
+                        </span>
+
+                    {% elif trace.result == "reachable" %}
+
+                        <span class="camara-result-badge success">
+                            REACHABLE
+                        </span>
+
+                    {% elif trace.result == "location_received" %}
+
+                        <span class="camara-result-badge success">
+                            LOCATION VERIFIED
+                        </span>
+
+                    {% else %}
+
+                        <span class="camara-result-badge neutral">
+                            {{
+                                trace.result
+                                |replace("_", " ")
+                                |upper
+                            }}
+                        </span>
+
+                    {% endif %}
+
+
+                    {% if trace.duration_ms %}
+
+                        <span class="camara-duration">
+
+                            {{
+                                "%.0f"
+                                |format(trace.duration_ms)
+                            }}
+
+                            ms
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    <!-- ==========================================
+         DECISION EFFECT
+    =========================================== -->
+
+    {% if camara.decision_effect %}
+
+        <div class="camara-decision-effect">
+
+            <div class="camara-decision-effect-label">
+                NETWORK-AWARE DECISION EFFECT
+            </div>
+
+            <div class="camara-decision-effect-main">
+
+                <strong>
+
+                    {{
+                        camara
+                        .decision_effect
+                        .team_id
+                    }}
+
+                    excluded despite being
+
+                    {{
+                        camara
+                        .decision_effect
+                        .distance_to_disaster_km
+                    }}
+
+                    km from the incident.
+
+                </strong>
+
+                <span>
+
+                    {{
+                        camara
+                        .decision_effect
+                        .message
+                    }}
+
+                </span>
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</section>
+
+{% endif %}
+
 <!-- ==================================================
      ARES V2 DYNAMIC REPLANNING
 =================================================== -->

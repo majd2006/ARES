@@ -557,6 +557,182 @@ def build_dashboard_state():
         }
     )
 
+        # ==========================================================
+    # CAMARA / OPEN GATEWAY OBSERVABILITY
+    # ==========================================================
+
+    camara_trace = []
+
+    camara_total_calls = 0
+    camara_successful_calls = 0
+    camara_failed_calls = 0
+    camara_skipped_calls = 0
+
+    for responder in evaluated_responders:
+
+        responder_trace = (
+            responder.get("tool_trace", [])
+        )
+
+        for tool_entry in responder_trace:
+
+            invoked = tool_entry.get(
+                "invoked",
+                False,
+            )
+
+            success = tool_entry.get(
+                "success"
+            )
+
+            if invoked:
+
+                camara_total_calls += 1
+
+                if success is True:
+                    camara_successful_calls += 1
+
+                elif success is False:
+                    camara_failed_calls += 1
+
+            else:
+                camara_skipped_calls += 1
+
+            camara_trace.append(
+                {
+                    "team_id":
+                        responder.get(
+                            "team_id"
+                        ),
+
+                    "team_name":
+                        responder.get(
+                            "name"
+                        ),
+
+                    "tool":
+                        tool_entry.get(
+                            "tool"
+                        ),
+
+                    "invoked":
+                        invoked,
+
+                    "success":
+                        success,
+
+                    "result":
+                        tool_entry.get(
+                            "result"
+                        ),
+
+                    "reason":
+                        tool_entry.get(
+                            "reason"
+                        ),
+
+                    "duration_ms":
+                        tool_entry.get(
+                            "duration_ms"
+                        ),
+
+                    "error":
+                        tool_entry.get(
+                            "error"
+                        ),
+
+                    "network_degraded":
+                        responder.get(
+                            "network_degraded",
+                            False,
+                        ),
+                }
+            )
+
+    unreachable_responders = [
+        responder
+        for responder in evaluated_responders
+        if responder.get("reachable") is False
+        and not responder.get(
+            "network_degraded",
+            False,
+        )
+    ]
+
+    nearest_unreachable = None
+
+    if unreachable_responders:
+
+        nearest_unreachable = min(
+            unreachable_responders,
+            key=lambda responder: (
+                responder.get(
+                    "distance_to_disaster_km"
+                )
+                if responder.get(
+                    "distance_to_disaster_km"
+                ) is not None
+                else float("inf")
+            ),
+        )
+
+    camara_observability = {
+        "total_calls":
+            camara_total_calls,
+
+        "successful_calls":
+            camara_successful_calls,
+
+        "failed_calls":
+            camara_failed_calls,
+
+        "skipped_calls":
+            camara_skipped_calls,
+
+        "trace":
+            camara_trace,
+
+        "network_degraded":
+            any(
+                responder.get(
+                    "network_degraded",
+                    False,
+                )
+                for responder
+                in evaluated_responders
+            ),
+
+        "decision_effect":
+            (
+                {
+                    "team_id":
+                        nearest_unreachable.get(
+                            "team_id"
+                        ),
+
+                    "team_name":
+                        nearest_unreachable.get(
+                            "name"
+                        ),
+
+                    "distance_to_disaster_km":
+                        nearest_unreachable.get(
+                            "distance_to_disaster_km"
+                        ),
+
+                    "message":
+                        (
+                            f"{nearest_unreachable.get('name')} "
+                            "was excluded from deployment because "
+                            "CAMARA Device Reachability reported "
+                            "the unit as unreachable."
+                        ),
+                }
+                if nearest_unreachable
+                else None
+            ),
+    }
+    
     # ======================================================
     # RETURN DASHBOARD STATE
     # ======================================================
@@ -837,6 +1013,13 @@ def build_dashboard_state():
         "reassessment":
             reassessment,
 
+            # --------------------------------------------------
+        # CAMARA / OPEN GATEWAY OBSERVABILITY
+        # --------------------------------------------------
+
+        "camara_observability":
+            camara_observability,
+    
         # --------------------------------------------------
         # NOKIA GEOFENCING
         # --------------------------------------------------
