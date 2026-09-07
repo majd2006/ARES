@@ -70,6 +70,114 @@ L.tileLayer(
 
 
 /* =========================================================
+   BEIRUT ROAD NETWORK
+   ========================================================= */
+
+if (
+    Array.isArray(state.road_network)
+    &&
+    state.road_network.length > 0
+) {
+
+    const roadStyleByStatus = {
+        open: {
+            color: "#2dd4bf",
+            weight: 5,
+            opacity: 0.9,
+            dashArray: null,
+        },
+
+        congested: {
+            color: "#f6c453",
+            weight: 5,
+            opacity: 0.95,
+            dashArray: "8 6",
+        },
+
+        blocked: {
+            color: "#ff5a67",
+            weight: 6,
+            opacity: 0.95,
+            dashArray: "4 6",
+        },
+    };
+
+
+    state.road_network.forEach(
+        (corridor) => {
+
+            if (
+                !Array.isArray(
+                    corridor.coordinates
+                )
+                ||
+                corridor.coordinates.length < 2
+            ) {
+                return;
+            }
+
+            const style = (
+                roadStyleByStatus[
+                    corridor.status
+                ]
+                ||
+                {
+                    color: "#9ca3af",
+                    weight: 4,
+                    opacity: 0.75,
+                    dashArray: "6 6",
+                }
+            );
+
+            const roadLine =
+                L.polyline(
+                    corridor.coordinates,
+                    style
+                )
+                .addTo(map);
+
+            const alternativeText = (
+                corridor.alternative_corridor_id
+                    ? `
+                        <br>
+                        <strong>
+                            Alternative Corridor:
+                        </strong>
+                        ${corridor.alternative_corridor_id}
+                    `
+                    : ""
+            );
+
+            roadLine.bindPopup(`
+                <div class="map-popup">
+                    <strong>
+                        ${corridor.name}
+                    </strong>
+
+                    <br>
+
+                    Corridor:
+                    ${corridor.corridor_id}
+
+                    <br>
+
+                    Status:
+                    <strong>
+                        ${corridor.status.toUpperCase()}
+                    </strong>
+
+                    <br><br>
+
+                    ${corridor.reason}
+
+                    ${alternativeText}
+                </div>
+            `);
+        }
+    );
+}
+
+/* =========================================================
    IMPACT ZONES
 ========================================================= */
 
@@ -506,6 +614,71 @@ state.relief_centers.forEach(
     }
 );
 
+/* =========================================================
+   FIELD MEDICAL POST
+========================================================= */
+
+if (
+    state.staging_site_selection &&
+    state.staging_site_selection.selected_site
+) {
+    const site =
+        state.staging_site_selection.selected_site;
+
+    const fieldPostMarker =
+        L.circleMarker(
+            [
+                site.latitude,
+                site.longitude
+            ],
+            {
+                radius: 9,
+                color: "#ffffff",
+                fillColor: "#2dd4bf",
+                fillOpacity: 0.95,
+                weight: 3
+            }
+        )
+        .addTo(map);
+
+    fieldPostMarker.bindPopup(`
+        <div class="map-popup">
+            <strong>
+                ARES Field Medical Post
+            </strong>
+
+            <br><br>
+
+            ${site.name}
+
+            <br>
+
+            Site ID:
+            ${site.site_id}
+
+            <br>
+
+            Distance:
+            ${site.distance_from_incident_km} km
+
+            <br>
+
+            Route:
+            ${site.route_access.primary_corridor}
+
+            <br>
+
+            Access:
+            ${site.route_decision.toUpperCase()}
+
+            <br><br>
+
+            <strong>
+                SIMULATED ARES-SELECTED STAGING SITE
+            </strong>
+        </div>
+    `);
+}
 
 /* =========================================================
    MAP BOUNDS
@@ -568,6 +741,59 @@ state.relief_centers.forEach(
     }
 );
 
+
+if (
+    Array.isArray(
+        state.road_network
+    )
+) {
+
+    state.road_network.forEach(
+        (corridor) => {
+
+            if (
+                !Array.isArray(
+                    corridor.coordinates
+                )
+            ) {
+                return;
+            }
+
+            corridor.coordinates.forEach(
+                (coordinate) => {
+
+                    if (
+                        Array.isArray(
+                            coordinate
+                        )
+                        &&
+                        coordinate.length === 2
+                    ) {
+
+                        mapPoints.push(
+                            coordinate
+                        );
+                    }
+                }
+            );
+        }
+    );
+}
+
+if (
+    state.staging_site_selection &&
+    state.staging_site_selection.selected_site
+) {
+    const site =
+        state.staging_site_selection.selected_site;
+
+    mapPoints.push(
+        [
+            site.latitude,
+            site.longitude
+        ]
+    );
+}
 
 if (mapPoints.length > 1) {
 
@@ -828,10 +1054,24 @@ async function simulateNetworkOutage() {
     outageButton.disabled =
         true;
 
+    const originalText =
+        outageButton.textContent;
+
     outageButton.textContent =
-        "Injecting outage...";
+        "Simulating...";
 
     try {
+
+        const scenarioId =
+            state.scenario
+                ? state.scenario.scenario_id
+                : "standard";
+
+        const targetTeamId =
+            scenarioId === "beirut"
+                ? "B-R01"
+                : "R01";
+
 
         const response =
             await fetch(
@@ -849,7 +1089,7 @@ async function simulateNetworkOutage() {
                         JSON.stringify(
                             {
                                 team_id:
-                                    "R01"
+                                    targetTeamId
                             }
                         )
                 }
@@ -865,13 +1105,10 @@ async function simulateNetworkOutage() {
             throw new Error(
                 result.message
                 ||
-                "Simulation failed."
+                "Network outage simulation failed."
             );
+
         }
-
-
-        outageButton.textContent =
-            "ARES Replanning...";
 
 
         setTimeout(
@@ -895,8 +1132,10 @@ async function simulateNetworkOutage() {
             false;
 
         outageButton.textContent =
-            "Simulate R01 Network Loss";
+            originalText;
+
     }
+
 }
 
 
@@ -991,6 +1230,16 @@ window.addEventListener(
    DEMO CONTROLLER
 ========================================================= */
 
+const demoStandardScenarioButton =
+    document.getElementById(
+        "demo-standard-scenario-button"
+    );
+
+const demoBeirutScenarioButton =
+    document.getElementById(
+        "demo-beirut-scenario-button"
+    );
+
 const demoResetButton =
     document.getElementById(
         "demo-reset-button"
@@ -1011,6 +1260,40 @@ const demoNetworkButton =
         "demo-network-button"
     );
 
+if (demoNetworkButton) {
+
+    const scenarioId =
+        state.scenario
+            ? state.scenario.scenario_id
+            : "standard";
+
+    demoNetworkButton.textContent =
+        scenarioId === "beirut"
+            ? "Simulate B-R01 Network Loss"
+            : "Simulate R01 Network Loss";
+
+}
+
+if (demoNetworkButton) {
+
+    const activeScenario =
+        window.ARES_STATE
+        &&
+        window.ARES_STATE.scenario
+            ? window.ARES_STATE.scenario
+            : null;
+
+    const scenarioId =
+        activeScenario
+            ? activeScenario.scenario_id
+            : "standard";
+
+    demoNetworkButton.textContent =
+        scenarioId === "beirut"
+            ? "Simulate B-R01 Network Loss"
+            : "Simulate R01 Network Loss";
+
+}
 
 async function runDemoAction(
     button,
@@ -1090,6 +1373,46 @@ async function runDemoAction(
     }
 }
 
+if (demoStandardScenarioButton) {
+
+    demoStandardScenarioButton.addEventListener(
+        "click",
+        () => {
+
+            runDemoAction(
+                demoStandardScenarioButton,
+                "/api/demo/scenario",
+                {
+                    scenario_id:
+                        "standard"
+                }
+            );
+
+        }
+    );
+
+}
+
+
+if (demoBeirutScenarioButton) {
+
+    demoBeirutScenarioButton.addEventListener(
+        "click",
+        () => {
+
+            runDemoAction(
+                demoBeirutScenarioButton,
+                "/api/demo/scenario",
+                {
+                    scenario_id:
+                        "beirut"
+                }
+            );
+
+        }
+    );
+
+}
 
 if (demoResetButton) {
 
@@ -1142,18 +1465,28 @@ if (demoNetworkButton) {
         "click",
         () => {
 
+            const scenarioId =
+                state.scenario
+                    ? state.scenario.scenario_id
+                    : "standard";
+
+            const targetTeamId =
+                scenarioId === "beirut"
+                    ? "B-R01"
+                    : "R01";
+
             runDemoAction(
                 demoNetworkButton,
-
                 "/api/simulations/network-outage",
-
                 {
                     team_id:
-                        "R01"
+                        targetTeamId
                 }
             );
+
         }
     );
+
 }
 
 

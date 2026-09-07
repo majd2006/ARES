@@ -1235,6 +1235,66 @@ select {
     background: var(--yellow);
 }
 
+/* =========================================================
+   ROAD NETWORK LEGEND
+========================================================= */
+
+.road-legend-divider {
+    width: 1px;
+    height: 12px;
+
+    background: rgba(
+        255,
+        255,
+        255,
+        0.14
+    );
+
+    margin:
+        0 2px;
+}
+
+
+.road-legend-label {
+    color: var(--text-muted);
+
+    font-size: 6px;
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+
+    opacity: 0.75;
+}
+
+
+.legend-road {
+    width: 16px;
+    height: 0;
+
+    display: inline-block;
+
+    border-top-width: 3px;
+    border-top-style: solid;
+
+    border-radius: 3px;
+}
+
+
+.legend-road.road-open {
+    border-top-color: #2dd4bf;
+}
+
+
+.legend-road.road-congested {
+    border-top-color: #f6c453;
+    border-top-style: dashed;
+}
+
+
+.legend-road.road-blocked {
+    border-top-color: #ff5a67;
+    border-top-style: dashed;
+}
 
 /* =========================================================
    RECOMMENDATION
@@ -4057,4 +4117,348 @@ td {
     .camara-metrics {
         grid-template-columns: 1fr;
     }
+}
+/* =========================================================
+   ROUTE ACCESS INTELLIGENCE
+   ========================================================= */
+
+.route-access-cell {
+    min-width: 190px;
+}
+
+.route-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.route-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.route-direct {
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.route-reroute {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.route-delayed {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.route-blocked {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.route-primary {
+    margin-top: 2px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.route-alternative {
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.route-state {
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+}
+
+.route-open {
+    opacity: 0.9;
+}
+
+.route-congested {
+    opacity: 0.9;
+}
+
+.route-blocked {
+    opacity: 0.9;
+}
+
+.route-na {
+    font-size: 0.75rem;
+    opacity: 0.55;
+}
+
+.decision-reason {
+    margin-top: 6px;
+    max-width: 145px;
+    font-size: 0.66rem;
+    line-height: 1.3;
+    opacity: 0.7;
+}
+/* ==========================================================
+   FIELD MEDICAL POST
+========================================================== */
+
+.field-medical-panel {
+    position: relative;
+    overflow: hidden;
+}
+
+.field-medical-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: rgba(45, 212, 191, 0.85);
+}
+
+.field-medical-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+
+    border: 1px solid rgba(45, 212, 191, 0.35);
+    background: rgba(45, 212, 191, 0.10);
+
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+.field-medical-content {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-bottom: 4px;
+}
+
+.field-medical-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 18px;
+}
+
+.field-medical-main {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.field-medical-main strong {
+    font-size: 1rem;
+}
+
+.field-medical-main p {
+    margin: 0;
+    max-width: 720px;
+
+    font-size: 0.78rem;
+    line-height: 1.55;
+    opacity: 0.72;
+}
+
+.field-medical-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    opacity: 0.60;
+}
+
+.field-pressure {
+    min-width: 170px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+
+    padding: 14px 16px;
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.field-pressure span {
+    font-size: 0.60rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    opacity: 0.55;
+}
+
+.field-pressure strong {
+    margin-top: 4px;
+    font-size: 1.45rem;
+}
+
+.field-resource-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.field-resource-card {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    padding: 12px 14px;
+
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 9px;
+
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.field-resource-card span {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    opacity: 0.55;
+}
+
+.field-resource-card strong {
+    font-size: 1.05rem;
+}
+
+.field-capabilities {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.field-capability-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.field-capability {
+    padding: 5px 9px;
+
+    border: 1px solid rgba(86, 168, 255, 0.22);
+    border-radius: 999px;
+
+    background: rgba(86, 168, 255, 0.07);
+
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.field-medical-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    padding: 12px 14px;
+
+    border-left: 3px solid rgba(45, 212, 191, 0.65);
+    border-radius: 6px;
+
+    background: rgba(45, 212, 191, 0.045);
+}
+
+.field-medical-note strong {
+    white-space: nowrap;
+
+    font-size: 0.64rem;
+    letter-spacing: 0.06em;
+}
+
+.field-medical-note span {
+    font-size: 0.74rem;
+    line-height: 1.5;
+    opacity: 0.72;
+}
+
+.field-policy-note {
+    font-size: 0.64rem;
+    line-height: 1.45;
+    opacity: 0.45;
+}
+
+@media (max-width: 900px) {
+
+    .field-medical-summary {
+        flex-direction: column;
+    }
+
+    .field-pressure {
+        align-items: flex-start;
+    }
+
+    .field-resource-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 560px) {
+
+    .field-resource-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .field-medical-note {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+}
+.field-site-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    padding: 12px 14px;
+
+    border: 1px solid rgba(45, 212, 191, 0.16);
+    border-radius: 9px;
+
+    background: rgba(45, 212, 191, 0.035);
+}
+
+.field-site-selection strong {
+    font-size: 0.92rem;
+}
+
+.field-site-selection span:not(.field-medical-label) {
+    font-size: 0.74rem;
+    opacity: 0.72;
+}
+
+.field-site-selection small {
+    margin-top: 3px;
+
+    font-size: 0.63rem;
+    line-height: 1.4;
+    opacity: 0.45;
+}
+.legend-dot.field-post {
+    background: #2dd4bf;
+    border: 2px solid #ffffff;
 }

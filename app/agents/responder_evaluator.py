@@ -64,6 +64,7 @@ class ResponderEvaluator:
         responder,
         disaster_latitude: float,
         disaster_longitude: float,
+        operational_location_mode: str = "camara_preferred",
     ):
 
         tool_trace = []
@@ -210,11 +211,64 @@ class ResponderEvaluator:
             }
         )
 
-        # --------------------------------------------------
-        # 3. CONDITIONAL LOCATION RETRIEVAL
+                # --------------------------------------------------
+        # 3. CONDITIONAL LOCATION POLICY
         # --------------------------------------------------
 
-        if reachability["reachable"]:
+        if (
+            reachability["reachable"]
+            and operational_location_mode
+            == "registered_scenario"
+        ):
+
+            # Historical/demo scenarios use the responder's
+            # scenario-defined operational coordinates.
+            #
+            # CAMARA Device Reachability remains live, but
+            # Location Retrieval is deliberately not invoked
+            # because the Nokia simulator location does not
+            # represent the historical scenario geography.
+
+            responder_latitude = (
+                responder.latitude
+            )
+
+            responder_longitude = (
+                responder.longitude
+            )
+
+            location_source = (
+                "registered_scenario"
+            )
+
+            location_api_failed = False
+
+            tool_trace.append(
+                {
+                    "tool":
+                        "CAMARA Location Retrieval",
+
+                    "invoked":
+                        False,
+
+                    "reason":
+                        (
+                            "Skipped by historical scenario "
+                            "location policy. ARES uses the "
+                            "scenario-defined operational "
+                            "coordinates while retaining live "
+                            "CAMARA Device Reachability."
+                        ),
+
+                    "result":
+                        "scenario_location_used",
+
+                    "policy_skip":
+                        True,
+                }
+            )
+
+        elif reachability["reachable"]:
 
             location = (
                 self.network_agent
@@ -345,7 +399,6 @@ class ResponderEvaluator:
                         "not_required",
                 }
             )
-
         # --------------------------------------------------
         # 4. DISTANCE
         # --------------------------------------------------

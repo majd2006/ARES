@@ -181,10 +181,51 @@
             Scenario Orchestrator
         </div>
 
+        <div class="demo-scenario-status">
+
+            <span class="demo-scenario-status-label">
+                ACTIVE SCENARIO
+            </span>
+
+            <strong id="active-scenario-title">
+                {{ state.scenario.title }}
+            </strong>
+
+            <span
+                id="active-scenario-location"
+                class="demo-scenario-location"
+            >
+                {{ state.scenario.location_name }}
+            </span>
+
+        </div>
+
     </div>
 
 
     <div class="demo-controller-actions">
+
+        <button
+            id="demo-standard-scenario-button"
+            class="demo-control-button"
+            type="button"
+            {% if state.scenario.scenario_id == "standard" %}
+                disabled
+            {% endif %}
+        >
+            Standard Demo
+        </button>
+
+        <button
+            id="demo-beirut-scenario-button"
+            class="demo-control-button primary"
+            type="button"
+            {% if state.scenario.scenario_id == "beirut" %}
+                disabled
+            {% endif %}
+        >
+            Beirut Historical Scenario
+        </button>
 
         <button
             id="demo-reset-button"
@@ -221,6 +262,30 @@
     </div>
 
 </section>
+
+{% if state.scenario.scenario_id == "beirut" %}
+
+<section class="scenario-disclaimer">
+
+    <div class="scenario-disclaimer-badge">
+        HISTORICAL DEMO
+    </div>
+
+    <div class="scenario-disclaimer-content">
+
+        <strong>
+            Beirut Port Explosion — Historical Scenario
+        </strong>
+
+        <p>
+            {{ state.scenario.disclaimer }}
+        </p>
+
+    </div>
+
+</section>
+
+{% endif %}
 
         <!-- ==================================================
              INCIDENT
@@ -597,12 +662,16 @@
                 <div class="simulation-actions">
 
                     <button
-                        id="simulate-outage-button"
-                        class="simulation-button danger"
-                        type="button"
-                    >
-                        Simulate R01 Network Loss
-                    </button>
+    id="simulate-outage-button"
+    class="simulation-button danger"
+    type="button"
+>
+    {% if state.scenario.scenario_id == "beirut" %}
+        Simulate B-R01 Network Loss
+    {% else %}
+        Simulate R01 Network Loss
+    {% endif %}
+</button>
 
                     <button
                         id="reset-simulation-button"
@@ -922,41 +991,70 @@
 
 
                 <div id="map"></div>
+<div class="map-legend">
+
+    <span>
+        <i class="legend-dot severe"></i>
+        Severe
+    </span>
+
+    <span>
+        <i class="legend-dot major"></i>
+        Major
+    </span>
+
+    <span>
+        <i class="legend-dot peripheral"></i>
+        Peripheral
+    </span>
+
+    <span>
+        <i class="legend-dot responder"></i>
+        Responder
+    </span>
+
+    <span>
+        <i class="legend-dot hospital"></i>
+        Hospital
+    </span>
+
+    <span>
+        <i class="legend-dot relief"></i>
+        Relief
+    </span>
 
 
-                <div class="map-legend">
+    {% if state.scenario.scenario_id == "beirut" %}
 
-                    <span>
-                        <i class="legend-dot severe"></i>
-                        Severe
-                    </span>
+        <span class="road-legend-divider"></span>
 
-                    <span>
-                        <i class="legend-dot major"></i>
-                        Major
-                    </span>
+        <span class="road-legend-label">
+            SIMULATED ROAD CONDITIONS
+        </span>
 
-                    <span>
-                        <i class="legend-dot peripheral"></i>
-                        Peripheral
-                    </span>
+        <span>
+            <i class="legend-road road-open"></i>
+            Open
+        </span>
 
-                    <span>
-                        <i class="legend-dot responder"></i>
-                        Responder
-                    </span>
+        <span>
+            <i class="legend-road road-congested"></i>
+            Congested
+        </span>
 
-                    <span>
-                        <i class="legend-dot hospital"></i>
-                        Hospital
-                    </span>
+        <span>
+            <i class="legend-road road-blocked"></i>
+            Blocked
+        </span>
 
-                    <span>
-                        <i class="legend-dot relief"></i>
-                        Relief
-                    </span>
+        <span>
+            <i class="legend-dot field-post"></i>
+             Field Medical Post
+        </span>
 
-                </div>
+    {% endif %}
+
+</div>
 
             </article>
 
@@ -1165,236 +1263,431 @@
                     <thead>
 
                     <tr>
-                        <th>Priority</th>
-                        <th>Unit</th>
-                        <th>Type</th>
-                        <th>Personnel</th>
-                        <th>Distance</th>
-                        <th>Network Status</th>
-                        <th>Zone Status</th>
-                        <th>Connectivity</th>
-                        <th>Decision</th>
-                    </tr>
+    <th>Priority</th>
+    <th>Unit</th>
+    <th>Type</th>
+    <th>Personnel</th>
+    <th>Distance</th>
+    <th>Network Status</th>
+    <th>Route Access</th>
+    <th>Zone Status</th>
+    <th>Connectivity</th>
+    <th>Decision</th>
+</tr>
 
-                    </thead>
-
-
-                    <tbody>
-
-                    {% for responder in state.responders %}
-
-                        <tr
-                            class="
-                            {% if not responder.reachable %}
-                            row-disabled
-                            {% endif %}
-                            "
-                        >
-
-                            <td>
-
-                                {% if responder.rank %}
-
-                                    <span class="rank-badge">
-                                        #{{ responder.rank }}
-                                    </span>
-
-                                {% else %}
-
-                                    <span class="rank-none">
-                                        —
-                                    </span>
-
-                                {% endif %}
-
-                            </td>
+</thead>
 
 
-                            <td>
+<tbody>
 
-                                <div class="unit-name">
-                                    {{ responder.name }}
-                                </div>
+{% for responder in state.responders %}
 
-                                <div class="unit-id">
-                                    {{ responder.team_id }}
-                                </div>
+    <tr
+        class="
+        {% if not responder.reachable %}
+        row-disabled
+        {% endif %}
+        "
+    >
 
-                            </td>
+        <td>
+
+            {% if responder.rank %}
+
+                <span class="rank-badge">
+                    #{{ responder.rank }}
+                </span>
+
+            {% else %}
+
+                <span class="rank-none">
+                    —
+                </span>
+
+            {% endif %}
+
+        </td>
 
 
-                            <td>
-                                {{ responder.team_type|title }}
-                            </td>
+        <td>
+
+            <div class="unit-name">
+                {{ responder.name }}
+            </div>
+
+            <div class="unit-id">
+                {{ responder.team_id }}
+            </div>
+
+        </td>
 
 
-                            <td>
-                                {{ responder.members }}
-                            </td>
+        <td>
+            {{ responder.team_type|title }}
+        </td>
 
 
-                            <td>
+        <td>
+            {{ responder.members }}
+        </td>
 
-                                {% if
+
+        <td>
+
+            {% if
+                responder.distance_to_disaster_km
+                is not none
+            %}
+
+                {{
+                    responder.distance_to_disaster_km
+                }}
+                km
+
+            {% else %}
+
+                —
+
+            {% endif %}
+
+        </td>
+
+
+        <td>
+
+            {% if responder.reachable %}
+
+                <span
+                    class="
+                    status-badge
+                    reachable
+                    "
+                >
+                    REACHABLE
+                </span>
+
+            {% else %}
+
+                <span
+                    class="
+                    status-badge
+                    unreachable
+                    "
+                >
+                    UNREACHABLE
+                </span>
+
+            {% endif %}
+
+        </td>
+
+
+        <td class="route-access-cell">
+
+            {% if
+                responder.route_decision
+                == "direct"
+            %}
+
+                <div class="route-summary">
+
+                    <span
+                        class="
+                        route-badge
+                        route-direct
+                        "
+                    >
+                        DIRECT
+                    </span>
+
+                    {% if responder.route_access %}
+
+                        <div class="route-primary">
+                            {{
+                                responder
+                                .route_access
+                                .primary_corridor
+                            }}
+                        </div>
+
+                        <div class="route-state">
+                            OPEN
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+            {% elif
+                responder.route_decision
+                == "reroute"
+            %}
+
+                <div class="route-summary">
+
+                    <span
+                        class="
+                        route-badge
+                        route-reroute
+                        "
+                    >
+                        REROUTED
+                    </span>
+
+                    {% if responder.route_access %}
+
+                        <div class="route-primary">
+                            {{
+                                responder
+                                .route_access
+                                .primary_corridor
+                            }}
+                        </div>
+
+                        <div class="route-state route-blocked">
+                            BLOCKED
+                        </div>
+
+                        {% if
+                            responder
+                            .route_access
+                            .alternative_corridor
+                        %}
+
+                            <div class="route-alternative">
+                                →
+                                {{
                                     responder
-                                    .distance_to_disaster_km
-                                    is not none
-                                %}
+                                    .route_access
+                                    .alternative_corridor
+                                }}
+                            </div>
 
-                                    {{
-                                        responder
-                                        .distance_to_disaster_km
-                                    }}
-                                    km
+                            <div class="route-state route-open">
+                                {{
+                                    responder
+                                    .route_access
+                                    .alternative_status
+                                    |upper
+                                }}
+                            </div>
 
-                                {% else %}
+                        {% endif %}
 
-                                    —
+                    {% endif %}
 
-                                {% endif %}
-
-                            </td>
-
-
-                            <td>
-
-                                {% if responder.reachable %}
-
-                                    <span
-                                        class="
-                                        status-badge
-                                        reachable
-                                        "
-                                    >
-                                        Reachable
-                                    </span>
-
-                                {% else %}
-
-                                    <span
-                                        class="
-                                        status-badge
-                                        unreachable
-                                        "
-                                    >
-                                        Disconnected
-                                    </span>
-
-                                {% endif %}
-
-                            </td>
+                </div>
 
 
-                            <td>
+            {% elif
+                responder.route_decision
+                == "delayed"
+            %}
 
-                                {% if
-                                    responder.geofence_status
-                                    == "inside"
-                                %}
+                <div class="route-summary">
 
-                                    <span class="zone-badge inside">
-                                        INSIDE ZONE
-                                    </span>
+                    <span
+                        class="
+                        route-badge
+                        route-delayed
+                        "
+                    >
+                        DELAYED
+                    </span>
 
-                                {% elif
-                                    responder.geofence_status
-                                    == "outside"
-                                %}
+                    {% if responder.route_access %}
 
-                                    <span class="zone-badge outside">
-                                        OUTSIDE ZONE
-                                    </span>
+                        <div class="route-primary">
+                            {{
+                                responder
+                                .route_access
+                                .primary_corridor
+                            }}
+                        </div>
 
-                                {% elif
-                                    responder.geofence_status
-                                    == "initializing"
-                                %}
+                        <div class="route-state route-congested">
+                            CONGESTED
+                        </div>
 
-                                    <span class="zone-badge initializing">
-                                        INITIALIZING
-                                    </span>
+                    {% endif %}
 
-                                {% elif
-                                    responder.geofence_status
-                                    == "subscription_ended"
-                                %}
-
-                                    <span class="zone-badge unknown">
-                                        MONITORING ENDED
-                                    </span>
-
-                                {% else %}
-
-                                    <span class="zone-badge unknown">
-                                        UNKNOWN
-                                    </span>
-
-                                {% endif %}
-
-                            </td>
+                </div>
 
 
-                            <td>
+            {% elif
+                responder.route_decision
+                == "blocked"
+            %}
 
-                                {% if responder.connectivity %}
+                <div class="route-summary">
 
-                                    {{
-                                        responder
-                                        .connectivity
-                                        |join(" + ")
-                                    }}
+                    <span
+                        class="
+                        route-badge
+                        route-blocked
+                        "
+                    >
+                        BLOCKED
+                    </span>
 
-                                {% else %}
+                    {% if responder.route_access %}
 
-                                    —
+                        <div class="route-primary">
+                            {{
+                                responder
+                                .route_access
+                                .primary_corridor
+                            }}
+                        </div>
 
-                                {% endif %}
+                    {% endif %}
 
-                            </td>
+                </div>
 
 
-                            <td>
+            {% else %}
 
-                                {% if responder.rank == 1 %}
+                <span class="route-na">
+                    N/A
+                </span>
 
-                                    <span
-                                        class="
-                                        decision-badge
-                                        selected
-                                        "
-                                    >
-                                        SELECTED
-                                    </span>
+            {% endif %}
 
-                                {% elif responder.reachable %}
+        </td>
 
-                                    <span
-                                        class="
-                                        decision-badge
-                                        standby
-                                        "
-                                    >
-                                        STANDBY
-                                    </span>
 
-                                {% else %}
+        <td>
 
-                                    <span
-                                        class="
-                                        decision-badge
-                                        excluded
-                                        "
-                                    >
-                                        EXCLUDED
-                                    </span>
+            {% if
+                responder.geofence_status
+                == "inside"
+            %}
 
-                                {% endif %}
+                <span class="zone-badge inside">
+                    INSIDE ZONE
+                </span>
 
-                            </td>
+            {% elif
+                responder.geofence_status
+                == "outside"
+            %}
 
-                        </tr>
+                <span class="zone-badge outside">
+                    OUTSIDE ZONE
+                </span>
 
-                    {% endfor %}
+            {% elif
+                responder.geofence_status
+                == "initializing"
+            %}
+
+                <span class="zone-badge initializing">
+                    INITIALIZING
+                </span>
+
+            {% elif
+                responder.geofence_status
+                == "subscription_ended"
+            %}
+
+                <span class="zone-badge unknown">
+                    MONITORING ENDED
+                </span>
+
+            {% else %}
+
+                <span class="zone-badge unknown">
+                    UNKNOWN
+                </span>
+
+            {% endif %}
+
+        </td>
+
+
+        <td>
+
+            {% if responder.connectivity %}
+
+                {{
+                    responder.connectivity
+                    |join(" + ")
+                }}
+
+            {% else %}
+
+                —
+
+            {% endif %}
+
+        </td>
+
+
+        <td>
+
+            {% if responder.rank == 1 %}
+
+                <span
+                    class="
+                    decision-badge
+                    selected
+                    "
+                >
+                    SELECTED
+                </span>
+
+            {% elif
+                responder
+                .eligible_for_deployment
+            %}
+
+                <span
+                    class="
+                    decision-badge
+                    standby
+                    "
+                >
+                    STANDBY
+                </span>
+
+            {% else %}
+
+                <span
+                    class="
+                    decision-badge
+                    excluded
+                    "
+                >
+                    NOT DEPLOYED
+                </span>
+
+            {% endif %}
+
+            {% if
+                not responder.reachable
+                and responder.route_available
+                and responder.route_decision
+                not in [
+                    "not_applicable",
+                    "unknown",
+                ]
+            %}
+
+                <div class="decision-reason">
+                    Route available,
+                    network unavailable
+                </div>
+
+            {% endif %}
+
+        </td>
+
+    </tr>
+
+{% endfor %}
+
+                     
 
                     </tbody>
 
@@ -1840,6 +2133,255 @@
 
         </section>
 
+                <!-- ==================================================
+             FIELD MEDICAL POST
+        =================================================== -->
+
+        {% if state.field_medical_post.required %}
+
+        <section class="panel field-medical-panel">
+
+            <div class="panel-header">
+
+                <div>
+                    <span class="panel-eyebrow">
+                        MASS-CASUALTY FIELD SUPPORT
+                    </span>
+
+                    <h2>
+                        Field Medical Post
+                    </h2>
+                </div>
+
+                <div class="field-medical-status">
+                    RECOMMENDED
+                </div>
+
+            </div>
+
+
+            <div class="field-medical-content">
+
+                <div class="field-medical-summary">
+
+                    <div class="field-medical-main">
+
+                        <span class="field-medical-label">
+                            ARES OPERATIONAL RECOMMENDATION
+                        </span>
+
+                        <strong>
+                            Establish
+                            {{
+                                state.field_medical_post
+                                .recommended_posts
+                            }}
+                            field medical post
+                        </strong>
+
+                        <p>
+                            {{
+                                state.field_medical_post
+                                .reason
+                            }}
+                        </p>
+
+                    </div>
+
+
+                    <div class="field-pressure">
+
+                        <span>
+                            PROJECTED HOSPITAL PRESSURE
+                        </span>
+
+                        <strong>
+                            {{
+                                (
+                                    state.field_medical_post
+                                    .projected_hospital_pressure
+                                    * 100
+                                )|round|int
+                            }}%
+                        </strong>
+
+                    </div>
+
+                </div>
+
+                {% if state.staging_site_selection.selected_site %}
+
+<div class="field-site-selection">
+
+    <span class="field-medical-label">
+        SELECTED SAFE STAGING SITE
+    </span>
+
+    <strong>
+        {{
+            state.staging_site_selection
+            .selected_site.name
+        }}
+    </strong>
+
+    <span>
+        {{
+            state.staging_site_selection
+            .selected_site.distance_from_incident_km
+        }}
+        km from incident ·
+
+        {{
+            state.staging_site_selection
+            .selected_site.route_access.primary_corridor
+        }}
+
+        ·
+        {{
+            state.staging_site_selection
+            .selected_site.route_decision
+            |upper
+        }}
+        ACCESS
+    </span>
+
+    <small>
+        Simulated ARES-selected field staging location.
+        Site selection is based on impact-zone safety,
+        road accessibility, and operational distance.
+    </small>
+
+</div>
+
+{% endif %}
+
+                <div class="field-resource-grid">
+
+                    <div class="field-resource-card">
+
+                        <span>
+                            MEDICAL TEAMS
+                        </span>
+
+                        <strong>
+                            {{
+                                state.field_medical_post
+                                .medical_teams_required
+                            }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="field-resource-card">
+
+                        <span>
+                            AMBULANCES
+                        </span>
+
+                        <strong>
+                            {{
+                                state.field_medical_post
+                                .ambulances_required
+                            }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="field-resource-card">
+
+                        <span>
+                            VOLUNTEERS
+                        </span>
+
+                        <strong>
+                            {{
+                                state.field_medical_post
+                                .volunteers_required
+                            }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="field-resource-card">
+
+                        <span>
+                            POSTS
+                        </span>
+
+                        <strong>
+                            {{
+                                state.field_medical_post
+                                .recommended_posts
+                            }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="field-capabilities">
+
+                    <span class="field-medical-label">
+                        OPERATIONAL CAPABILITIES
+                    </span>
+
+                    <div class="field-capability-list">
+
+                        {% for capability in
+                            state.field_medical_post.capabilities
+                        %}
+
+                            <span class="field-capability">
+                                {{
+                                    capability
+                                    |replace("_", " ")
+                                    |upper
+                                }}
+                            </span>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+
+                <div class="field-medical-note">
+
+                    <strong>
+                        MEDICAL FLOW
+                    </strong>
+
+                    <span>
+                        Field posts support triage,
+                        stabilization, minor and moderate care,
+                        and evacuation staging. Patients
+                        requiring hospital-level treatment
+                        remain assigned to hospital evacuation.
+                    </span>
+
+                </div>
+
+
+                <div class="field-policy-note">
+
+                    ARES prototype operational policy.
+                    This recommendation is generated from
+                    projected casualty volume, available
+                    hospital capacity, and local response
+                    resources.
+
+                </div>
+
+            </div>
+
+        </section>
+
+        {% endif %}
 
         <!-- ==================================================
              ESCALATION
@@ -3455,75 +3997,187 @@
 
                 <div class="resource-list">
 
-                    {% for hospital in state.hospitals %}
+    {% for hospital in state.hospitals %}
 
-                        {% set percentage =
-                            (
-                                hospital.available_capacity
-                                /
-                                hospital.total_capacity
-                                *
-                                100
-                            )|round|int
-                        %}
+        {# -----------------------------------------
+           Find ARES allocation for this hospital
+           ----------------------------------------- #}
 
-                        <div class="resource-item">
+        {% set allocation_ns =
+            namespace(
+                allocated=0
+            )
+        %}
 
-                            <div class="resource-top">
+        {% for allocation in
+            state.response_plan.hospital_allocations
+        %}
 
-                                <div>
+            {% if
+                allocation.hospital_id
+                ==
+                hospital.hospital_id
+            %}
 
-                                    <strong>
-                                        {{ hospital.name }}
-                                    </strong>
+                {% set allocation_ns.allocated =
+                    allocation.allocated_critical_patients
+                %}
 
-                                    <span>
-                                        {{
-                                            hospital
-                                            .hospital_id
-                                        }}
-                                    </span>
+            {% endif %}
 
-                                </div>
+        {% endfor %}
 
-                                <strong>
-                                    {{
-                                        hospital
-                                        .available_capacity
-                                    }}
-                                    beds
-                                </strong>
 
-                            </div>
+        {# -----------------------------------------
+           Calculate operational capacity
+           ----------------------------------------- #}
 
-                            <div class="capacity-track">
+        {% set remaining_capacity =
+            hospital.available_capacity
+            -
+            allocation_ns.allocated
+        %}
 
-                                <div
-                                    class="capacity-fill"
-                                    data-capacity="{{ percentage }}"
-                                ></div>
+        {% if remaining_capacity < 0 %}
+            {% set remaining_capacity = 0 %}
+        {% endif %}
 
-                            </div>
 
-                            <div class="resource-footer">
+        {% if hospital.available_capacity > 0 %}
 
-                                <span>
-                                    Available capacity
-                                </span>
+            {% set committed_percentage =
+                (
+                    allocation_ns.allocated
+                    /
+                    hospital.available_capacity
+                    *
+                    100
+                )|round|int
+            %}
 
-                                <span>
-                                    {{ percentage }}%
-                                </span>
+        {% else %}
 
-                            </div>
+            {% set committed_percentage = 0 %}
 
-                        </div>
+        {% endif %}
 
-                    {% endfor %}
+
+        {% if committed_percentage > 100 %}
+            {% set committed_percentage = 100 %}
+        {% endif %}
+
+
+        <div class="resource-item">
+
+            <div class="resource-top">
+
+                <div>
+
+                    <strong>
+                        {{ hospital.name }}
+                    </strong>
+
+                    <span>
+                        {{ hospital.hospital_id }}
+                    </span>
 
                 </div>
 
-            </article>
+
+                <strong>
+
+                    {{ remaining_capacity }}
+                    beds remaining
+
+                </strong>
+
+            </div>
+
+
+            <div class="capacity-track">
+
+                <div
+                    class="capacity-fill"
+                    data-capacity="{{
+                        committed_percentage
+                    }}"
+                ></div>
+
+            </div>
+
+
+            <div class="resource-footer">
+
+                <span>
+                    ARES capacity commitment
+                </span>
+
+                <span>
+                    {{ committed_percentage }}%
+                </span>
+
+            </div>
+
+
+            <div class="resource-footer">
+
+                <span>
+                    Initially available
+                </span>
+
+                <span>
+                    {{
+                        hospital.available_capacity
+                    }}
+                    beds
+                </span>
+
+            </div>
+
+
+            <div class="resource-footer">
+
+                <span>
+                    Critical patients allocated
+                </span>
+
+                <span>
+                    {{ allocation_ns.allocated }}
+                </span>
+
+            </div>
+
+
+            {% if
+                allocation_ns.allocated
+                >=
+                hospital.available_capacity
+                and
+                hospital.available_capacity > 0
+            %}
+
+                <div class="capacity-warning">
+
+                    <strong>
+                        CAPACITY EXHAUSTED
+                    </strong>
+
+                    <span>
+                        No remaining local capacity
+                        at this hospital.
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    {% endfor %}
+
+</div>
+
+</article>
 
 
             <article class="panel">

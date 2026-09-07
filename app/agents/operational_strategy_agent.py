@@ -5,6 +5,7 @@ class OperationalStrategyAgent:
         disaster_zone,
         response_plan,
         all_responders,
+        field_medical_post=None,
     ):
         actions = []
 
@@ -114,6 +115,89 @@ class OperationalStrategyAgent:
                 ),
             }
         )
+
+                # --------------------------------------------------
+        # 6. FIELD MEDICAL POST
+        # --------------------------------------------------
+
+        if (
+            field_medical_post
+            and field_medical_post.get(
+                "required",
+                False,
+            )
+        ):
+
+            actions.append(
+                {
+                    "priority":
+                        len(actions) + 1,
+
+                    "category":
+                        "Field Medical Support",
+
+                    "title":
+                        (
+                            "Establish field medical "
+                            "and triage post"
+                        ),
+
+                    "description":
+                        (
+                            f"Establish "
+                            f"{field_medical_post['recommended_posts']} "
+                            "field medical post to provide triage, "
+                            "stabilization, minor and moderate care, "
+                            "and evacuation staging."
+                        ),
+                }
+            )
+
+            actions.append(
+                {
+                    "priority":
+                        len(actions) + 1,
+
+                    "category":
+                        "Field Resource Allocation",
+
+                    "title":
+                        "Allocate field medical resources",
+
+                    "description":
+                        (
+                            f"Assign "
+                            f"{field_medical_post['medical_teams_required']} "
+                            "medical teams, "
+                            f"{field_medical_post['ambulances_required']} "
+                            "ambulances, and "
+                            f"{field_medical_post['volunteers_required']} "
+                            "volunteers to field medical operations."
+                        ),
+                }
+            )
+
+            actions.append(
+                {
+                    "priority":
+                        len(actions) + 1,
+
+                    "category":
+                        "Medical Flow",
+
+                    "title":
+                        "Separate field treatment from hospital evacuation",
+
+                    "description":
+                        (
+                            "Use the field medical post for triage, "
+                            "stabilization, minor and moderate care, "
+                            "and evacuation staging while reserving "
+                            "hospital transport for patients requiring "
+                            "hospital-level treatment."
+                        ),
+                }
+            )
 
         # --------------------------------------------------
         # 6. HOSPITAL ALLOCATION

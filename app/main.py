@@ -15,8 +15,20 @@ from app.agents.incident_reassessment_agent import (
     IncidentReassessmentAgent,
 )
 
+from app.agents.staging_site_agent import (
+    StagingSiteAgent,
+)
+
+from data.beirut_staging_sites import (
+    beirut_staging_sites,
+)
+
 from app.agents.responder_evaluator import (
     ResponderEvaluator,
+)
+
+from app.agents.field_medical_post_agent import (
+    FieldMedicalPostAgent,
 )
 
 from app.agents.response_planning_agent import (
@@ -57,6 +69,19 @@ from data.demo_scenario import (
     regional_relief_centers,
 )
 
+from data.beirut_demo_scenario import (
+    beirut_responder_teams,
+    beirut_hospitals,
+    beirut_relief_centers,
+    beirut_regional_hospitals,
+    beirut_regional_relief_centers,
+    BEIRUT_PORT_LATITUDE,
+    BEIRUT_PORT_LONGITUDE,
+)
+
+from data.beirut_road_network import (
+    beirut_road_corridors,
+)
 
 app = Flask(__name__)
 
@@ -68,6 +93,7 @@ app = Flask(__name__)
 ingestion_agent = IncidentIngestionAgent()
 assessment_agent = DisasterAssessmentAgent()
 reassessment_agent = IncidentReassessmentAgent()
+field_medical_post_agent = FieldMedicalPostAgent()
 
 evaluator = ResponderEvaluator()
 planner = ResponsePlanningAgent()
@@ -83,8 +109,156 @@ regional_reinforcement_agent = RegionalReinforcementAgent()
 ares_orchestrator = ARESOrchestrator()
 decision_replanner = DecisionReplanner()
 command_approval_manager = CommandApprovalManager()
+staging_site_agent = StagingSiteAgent(
+    route_access_agent=ares_orchestrator.route_access_agent
+)
+
+# ==========================================================
+# DEMO SCENARIO STATE
+# ==========================================================
+
+scenario_state = {
+    "active": "standard",
+}
 
 
+def get_active_scenario():
+
+    if scenario_state["active"] == "beirut":
+
+        return {
+            "scenario_id": "beirut",
+            "title": (
+                "Beirut Port Explosion — "
+                "Historical Scenario"
+            ),
+            "scenario_type": "historical_demo",
+            "location_name": "Beirut, Lebanon",
+
+            "responders": (
+                beirut_responder_teams
+            ),
+            "hospitals": (
+                beirut_hospitals
+            ),
+            "relief_centers": (
+                beirut_relief_centers
+            ),
+            "regional_hospitals": (
+                beirut_regional_hospitals
+            ),
+            "regional_relief_centers": (
+                beirut_regional_relief_centers
+            ),
+
+            "operational_location_mode": (
+                "registered_scenario"
+            ),
+
+            "disclaimer": (
+                "Historical Beirut Port scenario. "
+                "Operational resources and assessment "
+                "inputs are simulated for demonstration. "
+                "Device network states are supplied "
+                "through the Nokia/CAMARA simulator. "
+                "ARES assessment values are prototype "
+                "model estimates, not historical "
+                "casualty data."
+            ),
+        }
+
+    return {
+        "scenario_id": "standard",
+        "title": "ARES Standard Demo",
+        "scenario_type": "live_demo",
+        "location_name": "Network Simulator Scenario",
+
+        "responders": responder_teams,
+        "hospitals": hospitals,
+        "relief_centers": relief_centers,
+        "regional_hospitals": (
+            regional_hospitals
+        ),
+        "regional_relief_centers": (
+            regional_relief_centers
+        ),
+
+        "operational_location_mode": (
+            "camara_preferred"
+        ),
+
+        "disclaimer": (
+            "ARES standard demonstration scenario "
+            "using Nokia/CAMARA simulator network "
+            "services."
+        ),
+    }
+
+def build_standard_demo_incident():
+
+    return IncidentInput(
+        incident_id="INC-001",
+        source="simulated_satellite_alert",
+        timestamp=(
+            datetime.utcnow()
+            .isoformat()
+            + "Z"
+        ),
+
+        latitude=47.490,
+        longitude=19.080,
+
+        disaster_type="explosion",
+        severity="critical",
+
+        affected_radius_km=0.5,
+        population_density_per_km2=2800,
+
+        description=(
+            "Baseline urban explosion scenario."
+        ),
+    )
+
+def build_beirut_demo_incident():
+
+    return IncidentInput(
+        incident_id=(
+            "BEIRUT-PORT-2020-DEMO"
+        ),
+
+        source=(
+            "historical_demo_scenario"
+        ),
+
+        timestamp=(
+            "2020-08-04T18:08:00+03:00"
+        ),
+
+        latitude=(
+            BEIRUT_PORT_LATITUDE
+        ),
+
+        longitude=(
+            BEIRUT_PORT_LONGITUDE
+        ),
+
+        disaster_type="explosion",
+        severity="critical",
+
+        affected_radius_km=0.5,
+
+        # Prototype scenario assumption.
+        # Not historical population data.
+        population_density_per_km2=2800,
+
+        description=(
+            "Historical simulation inspired by "
+            "the 4 August 2020 Beirut Port "
+            "explosion. Operational resources "
+            "and assessment inputs are simulated "
+            "for demonstration."
+        ),
+    )
 # ==========================================================
 # ACTIVE INCIDENT
 # ==========================================================
@@ -149,6 +323,54 @@ geofence_state = {
     "last_device_event": {},
 }
 
+def reset_transient_demo_state(
+    event_type="demo_reset",
+    message="ARES demo state reset.",
+):
+
+    simulation_state[
+        "offline_teams"
+    ].clear()
+
+    simulation_state[
+        "last_event"
+    ] = {
+        "type":
+            event_type,
+
+        "message":
+            message,
+    }
+
+    replanning_state[
+        "previous_decision"
+    ] = None
+
+    replanning_state[
+        "current_decision"
+    ] = None
+
+    replanning_state[
+        "last_result"
+    ] = None
+
+    reassessment_state[
+        "last_result"
+    ] = None
+
+    geofence_state[
+        "events"
+    ].clear()
+
+    geofence_state[
+        "team_status"
+    ].clear()
+
+    geofence_state[
+        "last_device_event"
+    ].clear()
+
+    command_approval_manager.reset()
 
 # ==========================================================
 # HELPERS
@@ -250,132 +472,101 @@ def build_incident_state():
 
 def build_dashboard_state():
 
+    active_scenario = (
+        get_active_scenario()
+    )
+
+    active_responders = (
+        active_scenario["responders"]
+    )
+
+    active_hospitals = (
+        active_scenario["hospitals"]
+    )
+
+    active_relief_centers = (
+        active_scenario[
+            "relief_centers"
+        ]
+    )
+
+    active_regional_hospitals = (
+        active_scenario[
+            "regional_hospitals"
+        ]
+    )
+
+    active_regional_relief_centers = (
+        active_scenario[
+            "regional_relief_centers"
+        ]
+    )
+
+    operational_location_mode = (
+        active_scenario[
+            "operational_location_mode"
+        ]
+    )
+
     normalized_incident, assessment, zone = (
         build_incident_state()
     )
 
-    # ======================================================
+        # ======================================================
     # RESPONDER EVALUATION
     # ======================================================
 
-    evaluated_responders = []
+    evaluated_responders = (
+        ares_orchestrator.evaluate_responders(
+            responders=active_responders,
+            incident=normalized_incident,
+            offline_team_ids=(
+                simulation_state[
+                    "offline_teams"
+                ]
+            ),
+            operational_location_mode=(
+                operational_location_mode
+            ),
+        )
+    )
 
-    for responder in responder_teams:
+    # ======================================================
+    # DASHBOARD-SPECIFIC STATE
+    # ======================================================
 
-        try:
+    for responder in evaluated_responders:
 
-            result = evaluator.evaluate_responder(
-                responder=responder,
-                disaster_latitude=zone.latitude,
-                disaster_longitude=zone.longitude,
+        responder[
+            "simulation_override"
+        ] = responder.get(
+            "runtime_network_override",
+            False,
+        )
+
+        responder[
+            "geofence_status"
+        ] = (
+            geofence_state[
+                "team_status"
+            ].get(
+                responder[
+                    "team_id"
+                ]
             )
-
-            result["team_id"] = responder.team_id
-            result["name"] = responder.name
-            result["team_type"] = responder.team_type
-            result["members"] = responder.members
-
-            # ----------------------------------------------
-            # SIMULATED NETWORK OUTAGE
-            # ----------------------------------------------
-
-            if (
-                responder.team_id
-                in simulation_state["offline_teams"]
-            ):
-
-                result["reachable"] = False
-                result["connectivity"] = []
-
-                result[
-                    "eligible_for_deployment"
-                ] = False
-
-                result[
-                    "simulation_override"
-                ] = True
-
-            else:
-
-                result[
-                    "simulation_override"
-                ] = False
-
-            # ----------------------------------------------
-            # GEOFENCE STATE
-            # ----------------------------------------------
-
-            result["geofence_status"] = (
-                geofence_state[
-                    "team_status"
-                ].get(
-                    responder.team_id
-                )
-            )
-
-            evaluated_responders.append(
-                result
-            )
-
-        except Exception as error:
-
-            evaluated_responders.append(
-                {
-                    "team_id":
-                        responder.team_id,
-
-                    "name":
-                        responder.name,
-
-                    "team_type":
-                        responder.team_type,
-
-                    "members":
-                        responder.members,
-
-                    "phone_number":
-                        responder.phone_number,
-
-                    "latitude":
-                        responder.latitude,
-
-                    "longitude":
-                        responder.longitude,
-
-                    "reachable":
-                        False,
-
-                    "connectivity":
-                        [],
-
-                    "distance_to_disaster_km":
-                        None,
-
-                    "eligible_for_deployment":
-                        False,
-
-                    "simulation_override":
-                        (
-                            responder.team_id
-                            in simulation_state[
-                                "offline_teams"
-                            ]
-                        ),
-
-                    "geofence_status":
-                        geofence_state[
-                            "team_status"
-                        ].get(
-                            responder.team_id
-                        ),
-
-                    "error":
-                        str(error),
-                }
-            )
+        )
 
     # ======================================================
     # ELIGIBLE RESPONDERS
+    #
+    # IMPORTANT:
+    # Do not re-sort here by distance.
+    # evaluate_responders() already applies the
+    # authoritative ARES operational ranking:
+    #
+    # 1. deployment eligibility
+    # 2. route quality
+    # 3. physical distance
     # ======================================================
 
     eligible_responders = [
@@ -388,13 +579,6 @@ def build_dashboard_state():
         )
     ]
 
-    eligible_responders.sort(
-        key=lambda responder:
-            responder[
-                "distance_to_disaster_km"
-            ]
-    )
-
     # ======================================================
     # RESPONDER RANKING
     # ======================================================
@@ -404,11 +588,17 @@ def build_dashboard_state():
         start=1,
     ):
 
-        responder["rank"] = index
+        responder[
+            "rank"
+        ] = index
 
     rank_lookup = {
-        responder["team_id"]:
-            responder["rank"]
+        responder[
+            "team_id"
+        ]:
+            responder[
+                "rank"
+            ]
 
         for responder
         in eligible_responders
@@ -416,12 +606,15 @@ def build_dashboard_state():
 
     for responder in evaluated_responders:
 
-        responder["rank"] = (
+        responder[
+            "rank"
+        ] = (
             rank_lookup.get(
-                responder["team_id"]
+                responder[
+                    "team_id"
+                ]
             )
         )
-
     # ======================================================
     # PRIMARY RECOMMENDATION
     # ======================================================
@@ -479,9 +672,52 @@ def build_dashboard_state():
     response_plan = planner.generate_plan(
         disaster_zone=zone,
         responders=eligible_responders,
-        hospitals=hospitals,
-        relief_centers=relief_centers,
+        hospitals=active_hospitals,
+        relief_centers=(
+            active_relief_centers
+        ),
     )
+
+        # ======================================================
+    # FIELD MEDICAL POST
+    # ======================================================
+
+    field_medical_post = (
+        field_medical_post_agent.evaluate(
+            disaster_zone=zone,
+            response_plan=response_plan,
+            hospitals=active_hospitals,
+            relief_centers=(
+                active_relief_centers
+            ),
+        )
+    )
+
+        # ======================================================
+    # SAFE STAGING SITE SELECTION
+    # ======================================================
+
+    if (
+        active_scenario["scenario_id"] == "beirut"
+        and
+        field_medical_post.get(
+            "required",
+            False,
+        )
+    ):
+        staging_site_selection = (
+            staging_site_agent.evaluate_sites(
+                incident=normalized_incident,
+                sites=beirut_staging_sites,
+            )
+        )
+    else:
+        staging_site_selection = {
+            "status": "not_required",
+            "minimum_safe_distance_km": 0.75,
+            "selected_site": None,
+            "evaluated_sites": [],
+        }
 
     # ======================================================
     # RESOURCE ESCALATION
@@ -490,11 +726,12 @@ def build_dashboard_state():
     resource_escalation = (
         escalation_agent.evaluate(
             response_plan=response_plan,
-            hospitals=hospitals,
-            relief_centers=relief_centers,
+            hospitals=active_hospitals,
+            relief_centers=(
+                active_relief_centers
+            ),
         )
     )
-
     # ======================================================
     # REGIONAL REINFORCEMENT
     # ======================================================
@@ -510,11 +747,11 @@ def build_dashboard_state():
             ),
 
             hospitals=(
-                regional_hospitals
+                active_regional_hospitals
             ),
 
             relief_centers=(
-                regional_relief_centers
+                active_regional_relief_centers
             ),
         )
     )
@@ -525,10 +762,13 @@ def build_dashboard_state():
 
     operational_strategy = (
         strategy_agent.generate_strategy(
-            disaster_zone=zone,
-            response_plan=response_plan,
-            all_responders=(
-                evaluated_responders
+           disaster_zone=zone,
+           response_plan=response_plan,
+           all_responders=(
+               evaluated_responders
+            ),
+           field_medical_post=(
+               field_medical_post
             ),
         )
     )
@@ -739,124 +979,177 @@ def build_dashboard_state():
 
     return {
 
-        # --------------------------------------------------
-        # INCIDENT
-        # --------------------------------------------------
+    # --------------------------------------------------
+    # ACTIVE DEMO SCENARIO
+    # --------------------------------------------------
 
-        "incident": {
+        "scenario": {
+        "scenario_id":
+            active_scenario[
+                "scenario_id"
+            ],
 
-            "incident_id":
-                normalized_incident
-                .incident_id,
+        "title":
+            active_scenario[
+                "title"
+            ],
 
-            "zone_id":
-                zone.zone_id,
+        "scenario_type":
+            active_scenario[
+                "scenario_type"
+            ],
 
-            "name":
-                zone.name,
+        "location_name":
+            active_scenario[
+                "location_name"
+            ],
 
-            "source":
-                normalized_incident
-                .source,
+        "operational_location_mode":
+            operational_location_mode,
 
-            "timestamp":
-                normalized_incident
-                .timestamp,
+        "disclaimer":
+            active_scenario[
+                "disclaimer"
+            ],
+    },
 
-            "description":
-                normalized_incident
-                .description,
+    # --------------------------------------------------
+    # ROAD NETWORK
+    # --------------------------------------------------
 
-            "disaster_type":
-                normalized_incident
-                .disaster_type,
-
-            "latitude":
-                zone.latitude,
-
-            "longitude":
-                zone.longitude,
-
-            "severity":
-                zone.severity,
-
-            "affected_radius_km":
-                assessment
-                .affected_radius_km,
-
-            "estimated_population":
-                zone
-                .estimated_population,
-
-            "estimated_casualties":
-                zone
-                .estimated_casualties,
-
-            "estimated_critical":
-                zone
-                .estimated_critical,
-        },
-
-        # --------------------------------------------------
-        # IMPACT ZONES
-        # --------------------------------------------------
-
-        "impact_zones": [
-
+    "road_network": (
+        [
             {
-                "zone_name":
-                    impact_zone
-                    .zone_name,
+                "corridor_id":
+                    corridor.corridor_id,
 
-                "inner_radius_km":
-                    impact_zone
-                    .inner_radius_km,
+                "name":
+                    corridor.name,
 
-                "outer_radius_km":
-                    impact_zone
-                    .outer_radius_km,
+                "status":
+                    corridor.status,
 
-                "area_km2":
-                    impact_zone
-                    .area_km2,
+                "reason":
+                    corridor.reason,
 
-                "estimated_population":
-                    impact_zone
-                    .estimated_population,
+                "coordinates":
+                    corridor.coordinates,
 
-                "estimated_casualties":
-                    impact_zone
-                    .estimated_casualties,
-
-                "estimated_critical":
-                    impact_zone
-                    .estimated_critical,
-
-                "casualty_rate":
-                    impact_zone
-                    .casualty_rate,
-
-                "critical_rate":
-                    impact_zone
-                    .critical_rate,
+                "alternative_corridor_id":
+                    corridor.alternative_corridor_id,
             }
 
-            for impact_zone
-            in assessment.impact_zones
-        ],
+            for corridor
+            in beirut_road_corridors
+        ]
 
-        # --------------------------------------------------
-        # RESPONDERS
-        # --------------------------------------------------
+        if active_scenario[
+            "scenario_id"
+        ] == "beirut"
 
-        "responders":
-            evaluated_responders,
+        else []
+    ),
 
-        # --------------------------------------------------
-        # LOCAL HOSPITALS
-        # --------------------------------------------------
+    # --------------------------------------------------
+    # INCIDENT
+    # --------------------------------------------------
 
-        "hospitals": [
+    "incident": {
+
+        "incident_id":
+            normalized_incident.incident_id,
+
+        "zone_id":
+            zone.zone_id,
+
+        "name":
+            zone.name,
+
+        "source":
+            normalized_incident.source,
+
+        "timestamp":
+            normalized_incident.timestamp,
+
+        "description":
+            normalized_incident.description,
+
+        "disaster_type":
+            normalized_incident.disaster_type,
+
+        "latitude":
+            zone.latitude,
+
+        "longitude":
+            zone.longitude,
+
+        "severity":
+            zone.severity,
+
+        "affected_radius_km":
+            assessment.affected_radius_km,
+
+        "estimated_population":
+            zone.estimated_population,
+
+        "estimated_casualties":
+            zone.estimated_casualties,
+
+        "estimated_critical":
+            zone.estimated_critical,
+    },
+
+    # --------------------------------------------------
+    # IMPACT ZONES
+    # --------------------------------------------------
+
+    "impact_zones": [
+
+        {
+            "zone_name":
+                impact_zone.zone_name,
+
+            "inner_radius_km":
+                impact_zone.inner_radius_km,
+
+            "outer_radius_km":
+                impact_zone.outer_radius_km,
+
+            "area_km2":
+                impact_zone.area_km2,
+
+            "estimated_population":
+                impact_zone.estimated_population,
+
+            "estimated_casualties":
+                impact_zone.estimated_casualties,
+
+            "estimated_critical":
+                impact_zone.estimated_critical,
+
+            "casualty_rate":
+                impact_zone.casualty_rate,
+
+            "critical_rate":
+                impact_zone.critical_rate,
+        }
+
+        for impact_zone
+        in assessment.impact_zones
+    ],
+
+    # --------------------------------------------------
+    # RESPONDERS
+    # --------------------------------------------------
+
+    "responders":
+        evaluated_responders,
+
+    # --------------------------------------------------
+    # LOCAL HOSPITALS
+    # --------------------------------------------------
+
+    "hospitals": [
 
             {
                 "hospital_id":
@@ -881,7 +1174,7 @@ def build_dashboard_state():
                     .available_capacity,
             }
 
-            for hospital in hospitals
+            for hospital in active_hospitals
         ],
 
         # --------------------------------------------------
@@ -918,7 +1211,7 @@ def build_dashboard_state():
             }
 
             for center
-            in relief_centers
+            in active_relief_centers
         ],
 
         # --------------------------------------------------
@@ -951,7 +1244,7 @@ def build_dashboard_state():
             }
 
             for hospital
-            in regional_hospitals
+            in active_regional_hospitals
         ],
 
         # --------------------------------------------------
@@ -988,7 +1281,7 @@ def build_dashboard_state():
             }
 
             for center
-            in regional_relief_centers
+            in active_regional_relief_centers
         ],
 
         # --------------------------------------------------
@@ -1003,6 +1296,12 @@ def build_dashboard_state():
 
         "resource_escalation":
             resource_escalation,
+
+        "field_medical_post":
+            field_medical_post,
+
+        "staging_site_selection":
+            staging_site_selection,
 
         "regional_reinforcement":
             regional_reinforcement,
@@ -1476,7 +1775,17 @@ def receive_geofence_event():
 
     matched_team = None
 
-    for responder in responder_teams:
+    active_scenario = (
+        get_active_scenario()
+    )
+
+    active_responders = (
+        active_scenario[
+            "responders"
+        ]
+    )
+
+    for responder in active_responders:
 
         if (
             responder.phone_number
@@ -1740,12 +2049,40 @@ def simulate_network_outage():
             }
         ), 400
 
+    active_scenario = (
+        get_active_scenario()
+    )
+
+    active_responders = (
+        active_scenario[
+            "responders"
+        ]
+    )
+
+    active_hospitals = (
+        active_scenario[
+            "hospitals"
+        ]
+    )
+
+    active_relief_centers = (
+        active_scenario[
+            "relief_centers"
+        ]
+    )
+
+    operational_location_mode = (
+        active_scenario[
+            "operational_location_mode"
+        ]
+    )
+
     responder_lookup = {
         responder.team_id:
             responder
 
         for responder
-        in responder_teams
+        in active_responders
     }
 
     if team_id not in responder_lookup:
@@ -1811,21 +2148,26 @@ def simulate_network_outage():
             incident=active_incident,
 
             responders=(
-                responder_teams
+                active_responders
             ),
 
-            hospitals=hospitals,
+            hospitals=(
+                active_hospitals
+            ),
 
             relief_centers=(
-                relief_centers
+                active_relief_centers
             ),
 
             offline_team_ids=(
                 previous_offline_teams
             ),
+
+            operational_location_mode=(
+                operational_location_mode
+            ),
         )
     )
-
     # ======================================================
     # REGISTER NETWORK EVENT
     # ======================================================
@@ -1872,19 +2214,25 @@ def simulate_network_outage():
             incident=active_incident,
 
             responders=(
-                responder_teams
+                active_responders
             ),
 
-            hospitals=hospitals,
+            hospitals=(
+                active_hospitals
+            ),
 
             relief_centers=(
-                relief_centers
+                active_relief_centers
             ),
 
             offline_team_ids=(
                 simulation_state[
                     "offline_teams"
                 ]
+            ),
+
+            operational_location_mode=(
+                operational_location_mode
             ),
         )
     )
@@ -2380,6 +2728,118 @@ def modify_command():
 # DEMO CONTROLLER
 # ==========================================================
 
+# ==========================================================
+# DEMO SCENARIO SWITCHER
+# ==========================================================
+
+@app.route(
+    "/api/demo/scenario",
+    methods=["POST"],
+)
+def switch_demo_scenario():
+
+    global active_incident
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    scenario_id = (
+        data.get(
+            "scenario_id"
+        )
+        or ""
+    ).strip().lower()
+
+    # ======================================================
+    # VALIDATE SCENARIO
+    # ======================================================
+
+    if scenario_id not in {
+        "standard",
+        "beirut",
+    }:
+
+        return jsonify(
+            {
+                "status":
+                    "error",
+
+                "message":
+                    (
+                        "scenario_id must be "
+                        "'standard' or 'beirut'."
+                    ),
+            }
+        ), 400
+
+    # ======================================================
+    # ACTIVATE SCENARIO
+    # ======================================================
+
+    scenario_state[
+        "active"
+    ] = scenario_id
+
+    if scenario_id == "beirut":
+
+        active_incident = (
+            build_beirut_demo_incident()
+        )
+
+        reset_message = (
+            "ARES switched to the "
+            "Beirut Port historical "
+            "demonstration scenario."
+        )
+
+    else:
+
+        active_incident = (
+            build_standard_demo_incident()
+        )
+
+        reset_message = (
+            "ARES switched to the "
+            "standard Nokia/CAMARA "
+            "demonstration scenario."
+        )
+
+    # ======================================================
+    # CLEAR STALE OPERATIONAL STATE
+    # ======================================================
+
+    reset_transient_demo_state(
+        event_type="scenario_switch",
+        message=reset_message,
+    )
+
+    # ======================================================
+    # BUILD CLEAN SCENARIO STATE
+    # ======================================================
+
+    dashboard_state = (
+        build_dashboard_state()
+    )
+
+    return jsonify(
+        {
+            "status":
+                "accepted",
+
+            "scenario":
+                dashboard_state[
+                    "scenario"
+                ],
+
+            "message":
+                reset_message,
+
+            "dashboard_state":
+                dashboard_state,
+        }
+    ), 200
+
 @app.route(
     "/api/demo/reset",
     methods=["POST"],
@@ -2388,32 +2848,24 @@ def demo_reset():
 
     global active_incident
 
+        # ======================================================
+    # RESET ACTIVE SCENARIO INCIDENT
     # ======================================================
-    # RESET ACTIVE INCIDENT
-    # ======================================================
 
-    active_incident = IncidentInput(
-        incident_id="INC-001",
-        source="simulated_satellite_alert",
-        timestamp=(
-            datetime.utcnow()
-            .isoformat()
-            + "Z"
-        ),
+    if (
+        scenario_state["active"]
+        == "beirut"
+    ):
 
-        latitude=47.490,
-        longitude=19.080,
+        active_incident = (
+            build_beirut_demo_incident()
+        )
 
-        disaster_type="explosion",
-        severity="critical",
+    else:
 
-        affected_radius_km=0.5,
-        population_density_per_km2=2800,
-
-        description=(
-            "Baseline urban explosion scenario."
-        ),
-    )
+        active_incident = (
+            build_standard_demo_incident()
+        )
 
     # ======================================================
     # RESET NETWORK SIMULATION

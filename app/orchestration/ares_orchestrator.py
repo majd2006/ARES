@@ -1,3 +1,11 @@
+from app.agents.route_access_agent import (
+    RouteAccessAgent,
+)
+
+from data.beirut_road_network import (
+    beirut_road_corridors,
+    get_responder_corridor_id,
+)
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 
@@ -29,6 +37,11 @@ class ARESOrchestrator:
             ResponderEvaluator()
         )
 
+        self.route_access_agent = (
+            RouteAccessAgent(
+                 beirut_road_corridors
+            )
+        )  
         self.response_planning_agent = (
             ResponsePlanningAgent()
         )
@@ -101,6 +114,7 @@ class ARESOrchestrator:
         responders,
         incident,
         offline_team_ids=None,
+        operational_location_mode="camara_preferred",
     ):
 
         offline_team_ids = set(
@@ -115,13 +129,14 @@ class ARESOrchestrator:
                 self.responder_evaluator
                 .evaluate_responder(
                     responder=responder,
-
                     disaster_latitude=(
                         incident.latitude
                     ),
-
                     disaster_longitude=(
                         incident.longitude
+                    ),
+                    operational_location_mode=(
+                        operational_location_mode
                     ),
                 )
             )
@@ -149,16 +164,83 @@ class ARESOrchestrator:
             }
 
             # ------------------------------------------
+            # ROUTE ACCESS INTELLIGENCE
+            # ------------------------------------------
+
+            if (
+                operational_location_mode
+                == "registered_scenario"
+            ):
+
+                corridor_id = (
+                    get_responder_corridor_id(
+                        responder.team_id
+                    )
+                )
+
+                if corridor_id:
+
+                    route_evaluation = (
+                        self.route_access_agent
+                        .evaluate_route(
+                            corridor_id
+                        )
+                    )
+
+                    result[
+                        "route_access"
+                    ] = route_evaluation
+
+                    result[
+                        "route_available"
+                    ] = route_evaluation[
+                        "route_available"
+                    ]
+
+                    result[
+                        "route_decision"
+                    ] = route_evaluation[
+                        "route_decision"
+                    ]
+
+                    if not route_evaluation[
+                        "route_available"
+                    ]:
+
+                        result[
+                            "eligible_for_deployment"
+                        ] = False
+
+                else:
+
+                    result[
+                        "route_access"
+                    ] = None
+
+                    result[
+                        "route_available"
+                    ] = True
+
+                    result[
+                        "route_decision"
+                    ] = "unknown"
+
+            else:
+
+                result[
+                    "route_access"
+                ] = None
+
+                result[
+                    "route_available"
+                ] = True
+
+                result[
+                    "route_decision"
+                ] = "not_applicable"
+
+            # ------------------------------------------
             # RUNTIME NETWORK OVERRIDE
-            #
-            # Used for live incident events such as
-            # a communications outage.
-            #
-            # This is intentionally separate from:
-            # responder.available
-            #
-            # because operational availability and
-            # telecom reachability are different states.
             # ------------------------------------------
 
             if (
@@ -201,14 +283,31 @@ class ARESOrchestrator:
             )
 
         # ----------------------------------------------
-        # RE-RANK AFTER RUNTIME OVERRIDES
+        # RE-RANK AFTER NETWORK + ROUTE ANALYSIS
         # ----------------------------------------------
+
+        route_priority = {
+            "direct": 0,
+            "reroute": 1,
+            "delayed": 2,
+            "not_applicable": 0,
+            "unknown": 3,
+            "blocked": 4,
+        }
 
         evaluated_responders.sort(
             key=lambda responder: (
                 not responder[
                     "eligible_for_deployment"
                 ],
+
+                route_priority.get(
+                    responder.get(
+                        "route_decision",
+                        "not_applicable",
+                    ),
+                    3,
+                ),
 
                 responder[
                     "distance_to_disaster_km"
@@ -311,12 +410,13 @@ class ARESOrchestrator:
     # ======================================================
 
     def run_incident(
-        self,
-        incident,
-        responders,
-        hospitals,
-        relief_centers,
-        offline_team_ids=None,
+    self,
+    incident,
+    responders,
+    hospitals,
+    relief_centers,
+    offline_team_ids=None,
+    operational_location_mode="camara_preferred",
     ):
 
         started_at = datetime.now(
@@ -373,6 +473,10 @@ class ARESOrchestrator:
 
                 offline_team_ids=(
                     offline_team_ids
+                ),
+
+                operational_location_mode=(
+                    operational_location_mode
                 ),
             )
         )
