@@ -6,18 +6,22 @@ from data.beirut_road_network import (
     beirut_road_corridors,
     get_responder_corridor_id,
 )
+
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 
 from app.agents.disaster_assessment_agent import (
     DisasterAssessmentAgent,
 )
+
 from app.agents.responder_evaluator import (
     ResponderEvaluator,
 )
+
 from app.agents.response_planning_agent import (
     ResponsePlanningAgent,
 )
+
 from app.agents.operational_strategy_agent import (
     OperationalStrategyAgent,
 )
@@ -39,9 +43,10 @@ class ARESOrchestrator:
 
         self.route_access_agent = (
             RouteAccessAgent(
-                 beirut_road_corridors
+                beirut_road_corridors
             )
-        )  
+        )
+
         self.response_planning_agent = (
             ResponsePlanningAgent()
         )
@@ -114,11 +119,21 @@ class ARESOrchestrator:
         responders,
         incident,
         offline_team_ids=None,
+        road_status_overrides=None,
         operational_location_mode="camara_preferred",
+        geofence_status_by_team=None,
     ):
 
         offline_team_ids = set(
             offline_team_ids or []
+        )
+
+        road_status_overrides = (
+            road_status_overrides or {}
+        )
+
+        geofence_status_by_team = (
+            geofence_status_by_team or {}
         )
 
         evaluated_responders = []
@@ -129,12 +144,15 @@ class ARESOrchestrator:
                 self.responder_evaluator
                 .evaluate_responder(
                     responder=responder,
+
                     disaster_latitude=(
                         incident.latitude
                     ),
+
                     disaster_longitude=(
                         incident.longitude
                     ),
+
                     operational_location_mode=(
                         operational_location_mode
                     ),
@@ -183,7 +201,11 @@ class ARESOrchestrator:
                     route_evaluation = (
                         self.route_access_agent
                         .evaluate_route(
-                            corridor_id
+                            corridor_id,
+
+                            status_overrides=(
+                                road_status_overrides
+                            ),
                         )
                     )
 
@@ -202,6 +224,37 @@ class ARESOrchestrator:
                     ] = route_evaluation[
                         "route_decision"
                     ]
+
+                    # ----------------------------------
+                    # RUNTIME ROAD OVERRIDE METADATA
+                    # ----------------------------------
+
+                    result[
+                        "runtime_route_override"
+                    ] = (
+                        corridor_id
+                        in road_status_overrides
+                    )
+
+                    result[
+                        "runtime_route_corridor_id"
+                    ] = (
+                        corridor_id
+                        if corridor_id
+                        in road_status_overrides
+                        else None
+                    )
+
+                    result[
+                        "runtime_route_status"
+                    ] = (
+                        road_status_overrides.get(
+                            corridor_id
+                        )
+                        if corridor_id
+                        in road_status_overrides
+                        else None
+                    )
 
                     if not route_evaluation[
                         "route_available"
@@ -225,6 +278,18 @@ class ARESOrchestrator:
                         "route_decision"
                     ] = "unknown"
 
+                    result[
+                        "runtime_route_override"
+                    ] = False
+
+                    result[
+                        "runtime_route_corridor_id"
+                    ] = None
+
+                    result[
+                        "runtime_route_status"
+                    ] = None
+
             else:
 
                 result[
@@ -238,6 +303,18 @@ class ARESOrchestrator:
                 result[
                     "route_decision"
                 ] = "not_applicable"
+
+                result[
+                    "runtime_route_override"
+                ] = False
+
+                result[
+                    "runtime_route_corridor_id"
+                ] = None
+
+                result[
+                    "runtime_route_status"
+                ] = None
 
             # ------------------------------------------
             # RUNTIME NETWORK OVERRIDE
@@ -277,6 +354,66 @@ class ARESOrchestrator:
                 result[
                     "runtime_network_status"
                 ] = None
+            # ------------------------------------------
+            # CAMARA GEOFENCING OPERATIONAL STATE
+            # ------------------------------------------
+            #
+            # Geofencing is an independent operational
+            # constraint. It does not modify network
+            # reachability or route availability.
+            #
+            # Only an explicit "outside" state excludes
+            # the responder. Initialization, unknown,
+            # expired-subscription, or absent state does
+            # not automatically remove a responder.
+            # ------------------------------------------
+
+            geofence_status = (
+                geofence_status_by_team.get(
+                    responder.team_id
+                )
+            )
+
+            result[
+                "geofence_status"
+            ] = geofence_status
+
+            result[
+                "geofence_constraint_active"
+            ] = (
+                geofence_status
+                == "outside"
+            )
+
+            result[
+                "geofence_eligible"
+            ] = (
+                geofence_status
+                != "outside"
+            )
+
+            if (
+                geofence_status
+                == "outside"
+            ):
+
+                result[
+                    "eligible_for_deployment"
+                ] = False
+
+                result[
+                    "geofence_exclusion_reason"
+                ] = (
+                    "CAMARA Geofencing reports "
+                    "that the responder is outside "
+                    "the designated operational zone."
+                )
+
+            else:
+
+                result[
+                    "geofence_exclusion_reason"
+                ] = None
 
             evaluated_responders.append(
                 result
@@ -297,6 +434,7 @@ class ARESOrchestrator:
 
         evaluated_responders.sort(
             key=lambda responder: (
+
                 not responder[
                     "eligible_for_deployment"
                 ],
@@ -372,6 +510,10 @@ class ARESOrchestrator:
             evaluated_responders
         ):
 
+            # ------------------------------------------
+            # NETWORK EVENT
+            # ------------------------------------------
+
             if responder.get(
                 "runtime_network_override"
             ):
@@ -403,6 +545,74 @@ class ARESOrchestrator:
                     }
                 )
 
+            # ------------------------------------------
+            # ROAD ACCESS EVENT
+            # ------------------------------------------
+
+            if responder.get(
+                "runtime_route_override"
+            ):
+
+                route_access = (
+                    responder.get(
+                        "route_access"
+                    )
+                    or {}
+                )
+
+                events.append(
+                    {
+                        "type":
+                            "road_status_change",
+
+                        "team_id":
+                            responder[
+                                "team_id"
+                            ],
+
+                        "team_name":
+                            responder[
+                                "name"
+                            ],
+
+                        "corridor_id":
+                            responder.get(
+                                "runtime_route_corridor_id"
+                            ),
+
+                        "corridor_name":
+                            route_access.get(
+                                "primary_corridor"
+                            ),
+
+                        "status":
+                            responder.get(
+                                "runtime_route_status"
+                            ),
+
+                        "route_decision":
+                            responder.get(
+                                "route_decision"
+                            ),
+
+                        "route_available":
+                            responder.get(
+                                "route_available"
+                            ),
+
+                        "message":
+                            (
+                                f"{route_access.get('primary_corridor')} "
+                                "runtime road status changed "
+                                f"to "
+                                f"{responder.get('runtime_route_status')}. "
+                                f"{responder['name']} route decision "
+                                f"is now "
+                                f"{responder.get('route_decision')}."
+                            ),
+                    }
+                )
+
         return events
 
     # ======================================================
@@ -410,13 +620,16 @@ class ARESOrchestrator:
     # ======================================================
 
     def run_incident(
-    self,
-    incident,
-    responders,
-    hospitals,
-    relief_centers,
-    offline_team_ids=None,
-    operational_location_mode="camara_preferred",
+        self,
+        incident,
+        responders,
+        hospitals,
+        relief_centers,
+        offline_team_ids=None,
+        road_status_overrides=None,
+        operational_location_mode="camara_preferred",
+        geofence_status_by_team=None,
+        resource_pressure=False,
     ):
 
         started_at = datetime.now(
@@ -462,7 +675,7 @@ class ARESOrchestrator:
         )
 
         # ----------------------------------------------
-        # 3. NETWORK-AWARE RESPONDER ANALYSIS
+        # 3. NETWORK + ROUTE RESPONDER ANALYSIS
         # ----------------------------------------------
 
         evaluated_responders = (
@@ -473,6 +686,14 @@ class ARESOrchestrator:
 
                 offline_team_ids=(
                     offline_team_ids
+                ),
+
+                road_status_overrides=(
+                    road_status_overrides
+                ),
+
+                geofence_status_by_team=(
+                    geofence_status_by_team
                 ),
 
                 operational_location_mode=(
@@ -563,6 +784,12 @@ class ARESOrchestrator:
             )
         )
 
+        # Apply simulated reserve exhaustion before generating strategy.
+        # The underlying relief-center dataset remains unchanged.
+        if resource_pressure:
+            response_plan["reserve_resources"]["ambulances"] = 0
+            response_plan["reserve_resources"]["medical_teams"] = 0
+
         # ----------------------------------------------
         # 7. OPERATIONAL STRATEGY
         # ----------------------------------------------
@@ -648,9 +875,11 @@ class ARESOrchestrator:
                     ),
 
                     (
-                        "Request Location Retrieval "
-                        "only for network-reachable "
-                        "responders."
+                        "Skip Location Retrieval in Beirut; use "
+                        "registered scenario coordinates."
+                        if operational_location_mode == "registered_scenario"
+                        else "Request Location Retrieval only for "
+                        "network-reachable responders."
                     ),
 
                     (
@@ -660,16 +889,18 @@ class ARESOrchestrator:
                     ),
 
                     (
-                        "Use registered responder "
-                        "coordinates as degraded "
-                        "fallback if live location "
-                        "retrieval fails."
+                        "Beirut coordinates are scenario-defined, "
+                        "not Nokia simulator locations."
+                        if operational_location_mode == "registered_scenario"
+                        else "Use registered responder coordinates as degraded "
+                        "fallback if live location retrieval fails."
                     ),
 
                     (
                         "Recalculate deployment "
                         "decisions when runtime "
-                        "network state changes."
+                        "network or route state "
+                        "changes."
                     ),
                 ],
 

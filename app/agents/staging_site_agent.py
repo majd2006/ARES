@@ -53,7 +53,11 @@ class StagingSiteAgent:
         incident,
         sites,
         minimum_safe_distance_km=0.75,
+        road_status_overrides=None,
     ):
+        road_status_overrides = (
+            road_status_overrides or {}
+        )
         evaluated = []
 
         for site in sites:
@@ -68,7 +72,10 @@ class StagingSiteAgent:
             route = (
                 self.route_access_agent
                 .evaluate_route(
-                    site.corridor_id
+                    site.corridor_id,
+                    status_overrides=(
+                        road_status_overrides
+                    ),
                 )
             )
 

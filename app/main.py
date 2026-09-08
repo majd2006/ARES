@@ -289,6 +289,19 @@ active_incident = IncidentInput(
 
 simulation_state = {
     "offline_teams": set(),
+
+    # Runtime road-state changes.
+    #
+    # Example:
+    # {
+    #     "BR-05": "blocked"
+    # }
+    #
+    # These overrides are transient demo events.
+    # They do NOT modify the baseline Beirut road dataset.
+    "road_status_overrides": {},
+
+    "resource_pressure": False,
     "last_event": None,
 }
 
@@ -331,6 +344,14 @@ def reset_transient_demo_state(
     simulation_state[
         "offline_teams"
     ].clear()
+
+    simulation_state[
+        "road_status_overrides"
+    ].clear()
+
+    simulation_state[
+        "resource_pressure"
+    ] = False
 
     simulation_state[
         "last_event"
@@ -520,13 +541,27 @@ def build_dashboard_state():
         ares_orchestrator.evaluate_responders(
             responders=active_responders,
             incident=normalized_incident,
+
             offline_team_ids=(
                 simulation_state[
                     "offline_teams"
                 ]
             ),
+
+            road_status_overrides=(
+                simulation_state[
+                    "road_status_overrides"
+                ]
+            ),
+
             operational_location_mode=(
                 operational_location_mode
+            ),
+
+            geofence_status_by_team=(
+                geofence_state[
+                    "team_status"
+                ]
             ),
         )
     )
@@ -542,18 +577,6 @@ def build_dashboard_state():
         ] = responder.get(
             "runtime_network_override",
             False,
-        )
-
-        responder[
-            "geofence_status"
-        ] = (
-            geofence_state[
-                "team_status"
-            ].get(
-                responder[
-                    "team_id"
-                ]
-            )
         )
 
     # ======================================================
@@ -678,6 +701,34 @@ def build_dashboard_state():
         ),
     )
 
+    # ======================================================
+    # SIMULATED LOCAL RESOURCE PRESSURE
+    # ======================================================
+    #
+    # Demo-only operational event.
+    #
+    # This does not alter the underlying scenario resource
+    # dataset. It represents a runtime condition in which
+    # the locally mobilized ambulance and medical-team
+    # reserves have become exhausted after deployment.
+    #
+    # ResourceEscalationAgent will independently detect the
+    # exhausted reserves and determine whether regional
+    # reinforcement is required.
+    # ======================================================
+
+    if simulation_state.get(
+        "resource_pressure",
+        False,
+    ):
+        response_plan[
+            "reserve_resources"
+        ]["ambulances"] = 0
+
+        response_plan[
+            "reserve_resources"
+        ]["medical_teams"] = 0
+
         # ======================================================
     # FIELD MEDICAL POST
     # ======================================================
@@ -709,6 +760,11 @@ def build_dashboard_state():
             staging_site_agent.evaluate_sites(
                 incident=normalized_incident,
                 sites=beirut_staging_sites,
+                road_status_overrides=(
+                    simulation_state[
+                        "road_status_overrides"
+                    ]
+                ),
             )
         )
     else:
@@ -1027,7 +1083,23 @@ def build_dashboard_state():
                     corridor.name,
 
                 "status":
+                    simulation_state[
+                        "road_status_overrides"
+                    ].get(
+                        corridor.corridor_id,
+                        corridor.status,
+                    ),
+
+                "baseline_status":
                     corridor.status,
+
+                "runtime_override":
+                    (
+                        corridor.corridor_id
+                        in simulation_state[
+                            "road_status_overrides"
+                        ]
+                    ),
 
                 "reason":
                     corridor.reason,
@@ -1993,24 +2065,466 @@ def receive_geofence_event():
     )
 
     # ======================================================
-    # UPDATE TEAM STATE
+    # OPERATIONAL GEOFENCE STATE
+    # ======================================================
+    #
+    # Only explicit geographic states are allowed to
+    # influence deployment eligibility.
+    #
+    # "initializing", "unknown", and
+    # "subscription_ended" are retained in event history
+    # but do not modify the last trusted operational
+    # geofence state.
     # ======================================================
 
-    if matched_team:
+    if not matched_team:
+
+        return jsonify(
+            {
+                "status":
+                    "received",
+
+                "event":
+                    stored_event,
+
+                "replanning_triggered":
+                    False,
+
+                "message":
+                    (
+                        "Geofence event stored, but "
+                        "the device could not be matched "
+                        "to an active responder."
+                    ),
+            }
+        ), 200
+
+    team_id = (
+        matched_team.team_id
+    )
+
+    team_name = (
+        matched_team.name
+    )
+
+    previous_geofence_status = (
+        geofence_state[
+            "team_status"
+        ].get(
+            team_id
+        )
+    )
+
+    actionable_status = (
+        final_status
+        in {
+            "inside",
+            "outside",
+        }
+    )
+
+    # Non-operational callback states must never replace
+    # the last trusted geographic state.
+
+    if not actionable_status:
+
+        return jsonify(
+            {
+                "status":
+                    "received",
+
+                "event":
+                    stored_event,
+
+                "replanning_triggered":
+                    False,
+
+                "message":
+                    (
+                        "Geofence event stored. "
+                        "No operational geographic "
+                        "state change was applied."
+                    ),
+            }
+        ), 200
+
+    # ======================================================
+    # DETERMINE WHETHER ELIGIBILITY ACTUALLY CHANGES
+    # ======================================================
+    #
+    # ARES operational policy:
+    #
+    # outside -> responder is geographically ineligible
+    # inside  -> no geographic exclusion
+    #
+    # Therefore:
+    #
+    # None -> inside     = no eligibility change
+    # inside -> inside   = no eligibility change
+    # outside -> outside = no eligibility change
+    # inside -> outside  = material change
+    # None -> outside    = material change
+    # outside -> inside  = material change
+    # ======================================================
+
+    previous_constraint_active = (
+        previous_geofence_status
+        == "outside"
+    )
+
+    current_constraint_active = (
+        final_status
+        == "outside"
+    )
+
+    operational_change = (
+        previous_constraint_active
+        != current_constraint_active
+    )
+
+    # ======================================================
+    # NON-MATERIAL TRUSTED STATE UPDATE
+    # ======================================================
+
+    if not operational_change:
 
         geofence_state[
             "team_status"
-        ][
-            matched_team.team_id
-        ] = final_status
+        ][team_id] = final_status
+
+        return jsonify(
+            {
+                "status":
+                    "received",
+
+                "event":
+                    stored_event,
+
+                "replanning_triggered":
+                    False,
+
+                "previous_geofence_status":
+                    previous_geofence_status,
+
+                "current_geofence_status":
+                    final_status,
+
+                "message":
+                    (
+                        "Trusted geofence state updated. "
+                        "Responder deployment eligibility "
+                        "did not materially change."
+                    ),
+
+                "dashboard_state":
+                    build_dashboard_state(),
+            }
+        ), 200
+
+    # ======================================================
+    # ACTIVE OPERATIONAL RESOURCES
+    # ======================================================
+
+    active_hospitals = (
+        active_scenario[
+            "hospitals"
+        ]
+    )
+
+    active_relief_centers = (
+        active_scenario[
+            "relief_centers"
+        ]
+    )
+
+    operational_location_mode = (
+        active_scenario[
+            "operational_location_mode"
+        ]
+    )
+
+    # ======================================================
+    # DECISION N — BEFORE GEOFENCE TRANSITION
+    # ======================================================
+
+    previous_geofence_state = dict(
+        geofence_state[
+            "team_status"
+        ]
+    )
+
+    previous_decision = (
+        ares_orchestrator.run_incident(
+            incident=active_incident,
+
+            responders=(
+                active_responders
+            ),
+
+            hospitals=(
+                active_hospitals
+            ),
+
+            relief_centers=(
+                active_relief_centers
+            ),
+
+            offline_team_ids=(
+                simulation_state[
+                    "offline_teams"
+                ]
+            ),
+
+            road_status_overrides=(
+                simulation_state[
+                    "road_status_overrides"
+                ]
+            ),
+
+            operational_location_mode=(
+                operational_location_mode
+            ),
+
+            geofence_status_by_team=(
+                previous_geofence_state
+            ),
+
+            resource_pressure=(
+                simulation_state[
+                    "resource_pressure"
+                ]
+            ),
+        )
+    )
+
+    # ======================================================
+    # APPLY TRUSTED GEOFENCE TRANSITION
+    # ======================================================
+
+    geofence_state[
+        "team_status"
+    ][team_id] = final_status
+
+    # ======================================================
+    # REGISTER OPERATIONAL EVENT
+    # ======================================================
+
+    if final_status == "outside":
+
+        event_message = (
+            f"{team_name} left the designated "
+            "operational geofence."
+        )
+
+    else:
+
+        event_message = (
+            f"{team_name} re-entered the designated "
+            "operational geofence."
+        )
+
+    operational_event = {
+        "type":
+            "geofence_transition",
+
+        "source":
+            "camara_geofencing_webhook",
+
+        "team_id":
+            team_id,
+
+        "team_name":
+            team_name,
+
+        "previous_status":
+            previous_geofence_status,
+
+        "current_status":
+            final_status,
+
+        "timestamp":
+            (
+                event_time_string
+                or datetime.utcnow()
+                .isoformat()
+                + "Z"
+            ),
+
+        "message":
+            event_message,
+    }
+
+    simulation_state[
+        "last_event"
+    ] = operational_event
+
+    # ======================================================
+    # DECISION N+1 — AFTER GEOFENCE TRANSITION
+    # ======================================================
+
+    current_decision = (
+        ares_orchestrator.run_incident(
+            incident=active_incident,
+
+            responders=(
+                active_responders
+            ),
+
+            hospitals=(
+                active_hospitals
+            ),
+
+            relief_centers=(
+                active_relief_centers
+            ),
+
+            offline_team_ids=(
+                simulation_state[
+                    "offline_teams"
+                ]
+            ),
+
+            road_status_overrides=(
+                simulation_state[
+                    "road_status_overrides"
+                ]
+            ),
+
+            operational_location_mode=(
+                operational_location_mode
+            ),
+
+            geofence_status_by_team=(
+                geofence_state[
+                    "team_status"
+                ]
+            ),
+
+            resource_pressure=(
+                simulation_state[
+                    "resource_pressure"
+                ]
+            ),
+        )
+    )
+
+    # ======================================================
+    # EXPLAIN DECISION CHANGE
+    # ======================================================
+
+    replanning_result = (
+        decision_replanner.compare(
+            previous_decision=(
+                previous_decision
+            ),
+
+            current_decision=(
+                current_decision
+            ),
+
+            trigger={
+                "type":
+                    "geofence_transition",
+
+                "team_id":
+                    team_id,
+
+                "team_name":
+                    team_name,
+
+                "previous_status":
+                    previous_geofence_status,
+
+                "current_status":
+                    final_status,
+
+                "source":
+                    "camara_geofencing_webhook",
+            },
+        )
+    )
+
+    # ======================================================
+    # STORE V2 REPLANNING STATE
+    # ======================================================
+
+    replanning_state[
+        "previous_decision"
+    ] = previous_decision
+
+    replanning_state[
+        "current_decision"
+    ] = current_decision
+
+    replanning_state[
+        "last_result"
+    ] = replanning_result
+
+    # ======================================================
+    # HUMAN-IN-THE-LOOP GOVERNANCE
+    # ======================================================
+
+    if replanning_result.get(
+        "requires_replanning",
+        False,
+    ):
+
+        command_approval_manager.register_new_decision(
+            reason=(
+                "ARES generated a revised operational "
+                "decision after a CAMARA Geofencing "
+                "state transition."
+            )
+        )
+
+    # ======================================================
+    # RESPONSE
+    # ======================================================
 
     return jsonify(
         {
             "status":
-                "received",
+                "accepted",
+
+            "message":
+                (
+                    "CAMARA Geofencing state changed. "
+                    "ARES evaluated the operational "
+                    "impact and completed dynamic "
+                    "replanning."
+                ),
 
             "event":
                 stored_event,
+
+            "operational_event":
+                operational_event,
+
+            "previous_geofence_status":
+                previous_geofence_status,
+
+            "current_geofence_status":
+                final_status,
+
+            "replanning_triggered":
+                replanning_result.get(
+                    "requires_replanning",
+                    False,
+                ),
+
+            "replanning":
+                replanning_result,
+
+            "decision": {
+                "previous":
+                    previous_decision,
+
+                "current":
+                    current_decision,
+            },
+
+            "dashboard_state":
+                build_dashboard_state(),
         }
     ), 200
 
@@ -2166,6 +2680,19 @@ def simulate_network_outage():
             operational_location_mode=(
                 operational_location_mode
             ),
+
+            geofence_status_by_team=(
+                geofence_state[
+                    "team_status"
+                ]
+            ),
+
+            resource_pressure=(
+                simulation_state[
+                    "resource_pressure"
+                ]
+            ),
+            road_status_overrides=simulation_state["road_status_overrides"],
         )
     )
     # ======================================================
@@ -2234,6 +2761,19 @@ def simulate_network_outage():
             operational_location_mode=(
                 operational_location_mode
             ),
+
+            geofence_status_by_team=(
+                geofence_state[
+                    "team_status"
+                ]
+            ),
+
+            resource_pressure=(
+                simulation_state[
+                    "resource_pressure"
+                ]
+            ),
+            road_status_overrides=simulation_state["road_status_overrides"],
         )
     )
 
@@ -2327,6 +2867,715 @@ def simulate_network_outage():
 
 
 # ==========================================================
+# SIMULATE ROAD OBSTRUCTION
+# ==========================================================
+
+@app.route(
+    "/api/simulations/road-obstruction",
+    methods=["POST"],
+)
+def simulate_road_obstruction():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    corridor_id = (
+        data.get("corridor_id")
+        or "BR-05"
+    )
+
+    # ======================================================
+    # SCENARIO VALIDATION
+    # ======================================================
+
+    active_scenario = (
+        get_active_scenario()
+    )
+
+    scenario_id = (
+        active_scenario
+        .get(
+            "scenario_id",
+            "",
+        )
+    )
+
+    operational_location_mode = (
+        active_scenario[
+            "operational_location_mode"
+        ]
+    )
+
+    # Road-access intelligence is currently defined only
+    # for the Beirut historical demonstration scenario.
+    if (
+        operational_location_mode
+        != "registered_scenario"
+    ):
+
+        return jsonify(
+            {
+                "status":
+                    "error",
+
+                "message":
+                    (
+                        "Road obstruction simulation "
+                        "is available only in the "
+                        "Beirut scenario."
+                    ),
+
+                "scenario_id":
+                    scenario_id,
+            }
+        ), 400
+
+    # ======================================================
+    # ROAD EVENT VALIDATION
+    # ======================================================
+
+    # BR-05 is intentionally used for the controlled demo
+    # because B-R02 depends on it and no alternative
+    # corridor is configured for that route.
+    if corridor_id != "BR-05":
+
+        return jsonify(
+            {
+                "status":
+                    "error",
+
+                "message":
+                    (
+                        "The controlled road-obstruction "
+                        "demo currently supports BR-05."
+                    ),
+            }
+        ), 400
+
+    current_override = (
+        simulation_state[
+            "road_status_overrides"
+        ].get(
+            corridor_id
+        )
+    )
+
+    if current_override == "blocked":
+
+        return jsonify(
+            {
+                "status":
+                    "already_blocked",
+
+                "message":
+                    (
+                        f"{corridor_id} is already "
+                        "blocked by the runtime "
+                        "simulation."
+                    ),
+
+                "dashboard_state":
+                    build_dashboard_state(),
+            }
+        ), 200
+
+    # ======================================================
+    # ACTIVE OPERATIONAL RESOURCES
+    # ======================================================
+
+    active_responders = (
+        active_scenario[
+            "responders"
+        ]
+    )
+
+    active_hospitals = (
+        active_scenario[
+            "hospitals"
+        ]
+    )
+
+    active_relief_centers = (
+        active_scenario[
+            "relief_centers"
+        ]
+    )
+
+    # ======================================================
+    # DECISION 1 — BEFORE ROAD OBSTRUCTION
+    # ======================================================
+
+    previous_road_status_overrides = dict(
+        simulation_state[
+            "road_status_overrides"
+        ]
+    )
+
+    previous_decision = (
+        ares_orchestrator.run_incident(
+            incident=active_incident,
+
+            responders=(
+                active_responders
+            ),
+
+            hospitals=(
+                active_hospitals
+            ),
+
+            relief_centers=(
+                active_relief_centers
+            ),
+
+            offline_team_ids=(
+                simulation_state[
+                    "offline_teams"
+                ]
+            ),
+
+            road_status_overrides=(
+                previous_road_status_overrides
+            ),
+
+            operational_location_mode=(
+                operational_location_mode
+            ),
+
+            geofence_status_by_team=(
+                geofence_state[
+                    "team_status"
+                ]
+            ),
+
+            resource_pressure=(
+                simulation_state[
+                    "resource_pressure"
+                ]
+            ),
+        )
+    )
+
+    # ======================================================
+    # REGISTER ROAD EVENT
+    # ======================================================
+
+    simulation_state[
+        "road_status_overrides"
+    ][corridor_id] = "blocked"
+
+    event = {
+        "type":
+            "road_obstruction",
+
+        "corridor_id":
+            corridor_id,
+
+        "corridor_name":
+            (
+                "Pierre Gemayel / "
+                "Corniche El Nahr"
+            ),
+
+        "affected_team_id":
+            "B-R02",
+
+        "affected_team_name":
+            "Beirut Rescue Team Bravo",
+
+        "previous_status":
+            "open",
+
+        "current_status":
+            "blocked",
+
+        "timestamp":
+            datetime.utcnow()
+            .isoformat()
+            + "Z",
+
+        "source":
+            "live_demo_simulation",
+
+        "message":
+            (
+                "A simulated obstruction blocked "
+                "BR-05 Pierre Gemayel / Corniche "
+                "El Nahr. ARES is re-evaluating "
+                "responder accessibility."
+            ),
+    }
+
+    simulation_state[
+        "last_event"
+    ] = event
+
+    # ======================================================
+    # DECISION 2 — AFTER ROAD OBSTRUCTION
+    # ======================================================
+
+    current_decision = (
+        ares_orchestrator.run_incident(
+            incident=active_incident,
+
+            responders=(
+                active_responders
+            ),
+
+            hospitals=(
+                active_hospitals
+            ),
+
+            relief_centers=(
+                active_relief_centers
+            ),
+
+            offline_team_ids=(
+                simulation_state[
+                    "offline_teams"
+                ]
+            ),
+
+            road_status_overrides=(
+                simulation_state[
+                    "road_status_overrides"
+                ]
+            ),
+
+            operational_location_mode=(
+                operational_location_mode
+            ),
+
+            geofence_status_by_team=(
+                geofence_state[
+                    "team_status"
+                ]
+            ),
+
+            resource_pressure=(
+                simulation_state[
+                    "resource_pressure"
+                ]
+            ),
+        )
+    )
+
+    # ======================================================
+    # EXPLAIN DECISION CHANGE
+    # ======================================================
+
+    replanning_result = (
+        decision_replanner.compare(
+            previous_decision=(
+                previous_decision
+            ),
+
+            current_decision=(
+                current_decision
+            ),
+
+            trigger={
+                "type":
+                    "road_obstruction",
+
+                "corridor_id":
+                    corridor_id,
+
+                "corridor_name":
+                    (
+                        "Pierre Gemayel / "
+                        "Corniche El Nahr"
+                    ),
+
+                "team_id":
+                    "B-R02",
+
+                "team_name":
+                    "Beirut Rescue Team Bravo",
+
+                "source":
+                    "live_demo_simulation",
+            },
+        )
+    )
+
+    # ======================================================
+    # STORE V2 REPLANNING STATE
+    # ======================================================
+
+    replanning_state[
+        "previous_decision"
+    ] = previous_decision
+
+    replanning_state[
+        "current_decision"
+    ] = current_decision
+
+    replanning_state[
+        "last_result"
+    ] = replanning_result
+
+    # ======================================================
+    # HUMAN-IN-THE-LOOP GOVERNANCE
+    # ======================================================
+
+    if replanning_result.get(
+        "requires_replanning"
+    ):
+
+        command_approval_manager.register_new_decision(
+            reason=(
+                "ARES generated a revised operational "
+                "decision after a simulated road "
+                "obstruction changed responder "
+                "accessibility."
+            )
+        )
+
+    # ======================================================
+    # RESPONSE
+    # ======================================================
+
+    return jsonify(
+        {
+            "status":
+                "accepted",
+
+            "message":
+                (
+                    "Road obstruction detected. "
+                    "ARES completed dynamic "
+                    "operational replanning."
+                ),
+
+            "event":
+                event,
+
+            "road_status_overrides":
+                dict(
+                    simulation_state[
+                        "road_status_overrides"
+                    ]
+                ),
+
+            "replanning":
+                replanning_result,
+
+            "decision": {
+
+                "previous":
+                    previous_decision,
+
+                "current":
+                    current_decision,
+            },
+
+            "command_approval":
+                command_approval_manager
+                .get_state(),
+
+            "dashboard_state":
+                build_dashboard_state(),
+        }
+    ), 200
+
+# ==========================================================
+# SIMULATE LOCAL RESOURCE PRESSURE
+# ==========================================================
+
+@app.route(
+    "/api/simulations/resource-pressure",
+    methods=["POST"],
+)
+def simulate_resource_pressure():
+
+    # ======================================================
+    # DUPLICATE EVENT PROTECTION
+    # ======================================================
+
+    if simulation_state.get(
+        "resource_pressure",
+        False,
+    ):
+
+        return jsonify(
+            {
+                "status":
+                    "already_active",
+
+                "message":
+                    (
+                        "Local resource pressure "
+                        "is already active."
+                    ),
+
+                "dashboard_state":
+                    build_dashboard_state(),
+            }
+        ), 200
+
+    # ======================================================
+    # ACTIVE SCENARIO
+    # ======================================================
+
+    active_scenario = (
+        get_active_scenario()
+    )
+
+    active_responders = (
+        active_scenario[
+            "responders"
+        ]
+    )
+
+    active_hospitals = (
+        active_scenario[
+            "hospitals"
+        ]
+    )
+
+    active_relief_centers = (
+        active_scenario[
+            "relief_centers"
+        ]
+    )
+
+    operational_location_mode = (
+        active_scenario[
+            "operational_location_mode"
+        ]
+    )
+
+    # ======================================================
+    # DECISION 1 — BEFORE RESOURCE PRESSURE
+    # ======================================================
+
+    previous_decision = (
+        ares_orchestrator.run_incident(
+            incident=active_incident,
+
+            responders=(
+                active_responders
+            ),
+
+            hospitals=(
+                active_hospitals
+            ),
+
+            relief_centers=(
+                active_relief_centers
+            ),
+
+            offline_team_ids=(
+                simulation_state[
+                    "offline_teams"
+                ]
+            ),
+
+            road_status_overrides=(
+                simulation_state[
+                    "road_status_overrides"
+                ]
+            ),
+
+            operational_location_mode=(
+                operational_location_mode
+            ),
+
+            geofence_status_by_team=(
+                geofence_state[
+                    "team_status"
+                ]
+            ),
+
+            resource_pressure=False,
+        )
+    )
+
+    # ======================================================
+    # REGISTER RESOURCE-PRESSURE EVENT
+    # ======================================================
+
+    simulation_state[
+        "resource_pressure"
+    ] = True
+
+    event = {
+        "type":
+            "resource_pressure",
+
+        "timestamp":
+            datetime.utcnow()
+            .isoformat()
+            + "Z",
+
+        "source":
+            "live_demo_simulation",
+
+        "affected_resources": [
+            "ambulances",
+            "medical_teams",
+        ],
+
+        "message":
+            (
+                "Simulated operational pressure "
+                "exhausted local ambulance and "
+                "medical-team reserves. "
+                "ARES is re-evaluating resource "
+                "availability and regional "
+                "reinforcement requirements."
+            ),
+    }
+
+    simulation_state[
+        "last_event"
+    ] = event
+
+    # ======================================================
+    # DECISION 2 — AFTER RESOURCE PRESSURE
+    # ======================================================
+
+    current_decision = (
+        ares_orchestrator.run_incident(
+            incident=active_incident,
+
+            responders=(
+                active_responders
+            ),
+
+            hospitals=(
+                active_hospitals
+            ),
+
+            relief_centers=(
+                active_relief_centers
+            ),
+
+            offline_team_ids=(
+                simulation_state[
+                    "offline_teams"
+                ]
+            ),
+
+            road_status_overrides=(
+                simulation_state[
+                    "road_status_overrides"
+                ]
+            ),
+
+            operational_location_mode=(
+                operational_location_mode
+            ),
+
+            geofence_status_by_team=(
+                geofence_state[
+                    "team_status"
+                ]
+            ),
+
+            resource_pressure=True,
+        )
+    )
+
+    # ======================================================
+    # EXPLAIN DECISION CHANGE
+    # ======================================================
+
+    replanning_result = (
+        decision_replanner.compare(
+            previous_decision=(
+                previous_decision
+            ),
+
+            current_decision=(
+                current_decision
+            ),
+
+            trigger={
+                "type":
+                    "resource_pressure",
+
+                "affected_resources": [
+                    "ambulances",
+                    "medical_teams",
+                ],
+
+                "source":
+                    "live_demo_simulation",
+            },
+        )
+    )
+
+    # ======================================================
+    # STORE V2 REPLANNING STATE
+    # ======================================================
+
+    replanning_state[
+        "previous_decision"
+    ] = previous_decision
+
+    replanning_state[
+        "current_decision"
+    ] = current_decision
+
+    replanning_state[
+        "last_result"
+    ] = replanning_result
+
+    # ======================================================
+    # HUMAN-IN-THE-LOOP GOVERNANCE
+    # ======================================================
+
+    command_approval_manager.register_new_decision(
+        reason=(
+            "ARES generated a revised operational decision after simulated "
+            "resource pressure exhausted local reserves."
+        )
+    )
+
+    # ======================================================
+    # BUILD UPDATED OPERATIONAL STATE
+    # ======================================================
+
+    dashboard_state = (
+        build_dashboard_state()
+    )
+
+    # ======================================================
+    # RESPONSE
+    # ======================================================
+
+    return jsonify(
+        {
+            "status":
+                "accepted",
+
+            "event":
+                event,
+
+            "replanning":
+                replanning_result,
+
+            "resource_escalation":
+                dashboard_state[
+                    "resource_escalation"
+                ],
+
+            "regional_reinforcement":
+                dashboard_state[
+                    "regional_reinforcement"
+                ],
+
+            "command_approval":
+                command_approval_manager
+                .get_state(),
+
+            "dashboard_state":
+                dashboard_state,
+        }
+    ), 200
+# ==========================================================
 # RESET SIMULATION
 # ==========================================================
 
@@ -2339,6 +3588,14 @@ def reset_simulation():
     simulation_state[
         "offline_teams"
     ].clear()
+
+    simulation_state[
+        "road_status_overrides"
+    ].clear()
+
+    simulation_state[
+        "resource_pressure"
+    ] = False
 
     simulation_state[
         "last_event"
@@ -2874,6 +4131,14 @@ def demo_reset():
     simulation_state[
         "offline_teams"
     ].clear()
+
+    simulation_state[
+        "road_status_overrides"
+    ].clear()
+
+    simulation_state[
+        "resource_pressure"
+    ] = False
 
     simulation_state[
         "last_event"

@@ -16,12 +16,12 @@ class RegionalReinforcementAgent:
     # ======================================================
     # DISTANCE
     # ======================================================
-    
+
     def __init__(self):
 
         self.optimizer = (
             ResourceOptimizer()
-    )
+        )
 
     def calculate_distance_km(
         self,
@@ -78,9 +78,7 @@ class RegionalReinforcementAgent:
         )
 
         hospital_allocations = []
-
         relief_allocations = []
-
         unmet_requirements = []
 
         # ==================================================
@@ -104,7 +102,6 @@ class RegionalReinforcementAgent:
             if resource_type == "hospital_capacity":
 
                 remaining = required_quantity
-
                 hospital_candidates = []
 
                 for hospital in hospitals:
@@ -123,52 +120,59 @@ class RegionalReinforcementAgent:
 
                     hospital_candidates.append(
                         {
-                            "hospital":
-                                hospital,
-
-                            "distance_km":
-                                distance,
+                            "hospital": hospital,
+                            "distance_km": distance,
                         }
                     )
 
-                # Closest useful hospital first
                 optimized_candidates = (
-    self.optimizer.rank_candidates(
-        candidates=[
-            {
-                "hospital":
-                    candidate[
-                        "hospital"
-                    ],
+                    self.optimizer.rank_candidates(
+                        candidates=[
+                            {
+                                "hospital":
+                                    candidate["hospital"],
 
-                "distance_km":
-                    candidate[
-                        "distance_km"
-                    ],
+                                "distance_km":
+                                    candidate["distance_km"],
 
-                "available":
-                    candidate[
-                        "hospital"
-                    ].available_capacity,
-            }
+                                "available":
+                                    candidate[
+                                        "hospital"
+                                    ].available_capacity,
+                            }
 
-            for candidate
-            in hospital_candidates
-        ],
+                            for candidate
+                            in hospital_candidates
+                        ],
 
-        required_quantity=
-            remaining,
-    )
-)
+                        required_quantity=
+                            remaining,
+                    )
+                )
+
+                # ------------------------------------------------
+                # REGIONAL PROGRESSIVE ESCALATION POLICY
+                # ------------------------------------------------
+
+                optimized_candidates.sort(
+                    key=lambda candidate: (
+                        candidate["distance_km"],
+                        candidate[
+                            "optimization"
+                        ][
+                            "total_score"
+                        ],
+                    )
+                )
 
                 for candidate in optimized_candidates:
 
                     if remaining <= 0:
                         break
 
-                    hospital = (
-                        candidate["hospital"]
-                    )
+                    hospital = candidate[
+                        "hospital"
+                    ]
 
                     allocated = min(
                         remaining,
@@ -205,10 +209,7 @@ class RegionalReinforcementAgent:
                                 ],
 
                             "mission":
-                                (
-                                    "Receive overflow "
-                                    "critical patients"
-                                ),
+                                "Receive overflow critical patients",
                         }
                     )
 
@@ -240,7 +241,6 @@ class RegionalReinforcementAgent:
             }:
 
                 remaining = required_quantity
-
                 relief_candidates = []
 
                 for center in relief_centers:
@@ -248,22 +248,19 @@ class RegionalReinforcementAgent:
                     if resource_type == "ambulances":
 
                         available = (
-                            center
-                            .available_ambulances
+                            center.available_ambulances
                         )
 
                     elif resource_type == "medical_teams":
 
                         available = (
-                            center
-                            .available_medical_teams
+                            center.available_medical_teams
                         )
 
                     else:
 
                         available = (
-                            center
-                            .available_volunteers
+                            center.available_volunteers
                         )
 
                     if available <= 0:
@@ -280,14 +277,9 @@ class RegionalReinforcementAgent:
 
                     relief_candidates.append(
                         {
-                            "center":
-                                center,
-
-                            "available":
-                                available,
-
-                            "distance_km":
-                                distance,
+                            "center": center,
+                            "available": available,
+                            "distance_km": distance,
                         }
                     )
 
@@ -301,14 +293,29 @@ class RegionalReinforcementAgent:
                     )
                 )
 
+                # ------------------------------------------------
+                # REGIONAL PROGRESSIVE ESCALATION POLICY
+                # ------------------------------------------------
+
+                optimized_candidates.sort(
+                    key=lambda candidate: (
+                        candidate["distance_km"],
+                        candidate[
+                            "optimization"
+                        ][
+                            "total_score"
+                        ],
+                    )
+                )
+
                 for candidate in optimized_candidates:
 
                     if remaining <= 0:
                         break
 
-                    center = (
-                        candidate["center"]
-                    )
+                    center = candidate[
+                        "center"
+                    ]
 
                     allocated = min(
                         remaining,
@@ -341,6 +348,7 @@ class RegionalReinforcementAgent:
                                 self._mission_for(
                                     resource_type
                                 ),
+
                             "optimization_score":
                                 candidate[
                                     "optimization"
@@ -405,7 +413,6 @@ class RegionalReinforcementAgent:
                     unmet_requirements,
                 ),
         }
-
     # ======================================================
     # RESOURCE MISSIONS
     # ======================================================

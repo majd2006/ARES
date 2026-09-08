@@ -378,7 +378,7 @@ state.responders.forEach(
 
 
         const markerColor =
-            responder.reachable
+            responder.eligible_for_deployment
                 ? "#2dd4bf"
                 : "#ff5a67";
 
@@ -402,7 +402,7 @@ state.responders.forEach(
                         markerColor,
 
                     fillOpacity:
-                        responder.reachable
+                        responder.eligible_for_deployment
                             ? 0.90
                             : 0.55,
 
@@ -449,7 +449,7 @@ state.responders.forEach(
             responder.rank === 1
                 ? "SELECTED"
 
-                : responder.reachable
+                : responder.eligible_for_deployment
                     ? "STANDBY"
 
                     : "EXCLUDED";
@@ -1235,6 +1235,11 @@ const demoStandardScenarioButton =
         "demo-standard-scenario-button"
     );
 
+const simulateResourcePressureButton =
+    document.getElementById(
+        "simulate-resource-pressure-button"
+    );
+
 const demoBeirutScenarioButton =
     document.getElementById(
         "demo-beirut-scenario-button"
@@ -1260,32 +1265,27 @@ const demoNetworkButton =
         "demo-network-button"
     );
 
-if (demoNetworkButton) {
+if (simulateResourcePressureButton) {
 
-    const scenarioId =
-        state.scenario
-            ? state.scenario.scenario_id
-            : "standard";
+    simulateResourcePressureButton.addEventListener(
+        "click",
+        () => {
 
-    demoNetworkButton.textContent =
-        scenarioId === "beirut"
-            ? "Simulate B-R01 Network Loss"
-            : "Simulate R01 Network Loss";
+            runDemoAction(
+                simulateResourcePressureButton,
+                "/api/simulations/resource-pressure"
+            );
+
+        }
+    );
 
 }
 
 if (demoNetworkButton) {
 
-    const activeScenario =
-        window.ARES_STATE
-        &&
-        window.ARES_STATE.scenario
-            ? window.ARES_STATE.scenario
-            : null;
-
     const scenarioId =
-        activeScenario
-            ? activeScenario.scenario_id
+        state.scenario
+            ? state.scenario.scenario_id
             : "standard";
 
     demoNetworkButton.textContent =
@@ -1845,7 +1845,7 @@ if (confirmModificationButton) {
             if (!priorityTeam) {
 
                 showCommandFeedback(
-                    "Select a reachable priority team.",
+                    "Select an eligible priority team.",
                     "error"
                 );
 

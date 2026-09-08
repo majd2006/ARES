@@ -17,11 +17,15 @@ class RouteAccessAgent:
             for corridor in road_corridors
         }
 
-
     def evaluate_route(
         self,
         primary_corridor_id: str,
+        status_overrides=None,
     ) -> Dict:
+
+        status_overrides = (
+            status_overrides or {}
+        )
 
         corridor = self.road_corridors.get(
             primary_corridor_id
@@ -45,9 +49,18 @@ class RouteAccessAgent:
                 ),
             }
 
+        primary_status = (
+            status_overrides.get(
+                corridor.corridor_id,
+                corridor.status,
+            )
+        )
 
-        status = corridor.status.lower()
+        status = primary_status.lower()
 
+        # ==================================================
+        # OPEN
+        # ==================================================
 
         if status == "open":
 
@@ -58,7 +71,7 @@ class RouteAccessAgent:
                 "primary_corridor":
                     corridor.name,
                 "primary_status":
-                    corridor.status,
+                    primary_status,
                 "alternative_corridor":
                     None,
                 "alternative_status":
@@ -69,6 +82,9 @@ class RouteAccessAgent:
                     corridor.reason,
             }
 
+        # ==================================================
+        # CONGESTED
+        # ==================================================
 
         if status == "congested":
 
@@ -79,7 +95,7 @@ class RouteAccessAgent:
                 "primary_corridor":
                     corridor.name,
                 "primary_status":
-                    corridor.status,
+                    primary_status,
                 "alternative_corridor":
                     None,
                 "alternative_status":
@@ -90,6 +106,9 @@ class RouteAccessAgent:
                     corridor.reason,
             }
 
+        # ==================================================
+        # BLOCKED
+        # ==================================================
 
         if status == "blocked":
 
@@ -104,11 +123,21 @@ class RouteAccessAgent:
                     )
                 )
 
+            alternative_status = None
+
+            if alternative:
+
+                alternative_status = (
+                    status_overrides.get(
+                        alternative.corridor_id,
+                        alternative.status,
+                    )
+                )
 
             if (
                 alternative
-                and
-                alternative.status.lower()
+                and alternative_status
+                and alternative_status.lower()
                 in {
                     "open",
                     "congested",
@@ -122,11 +151,11 @@ class RouteAccessAgent:
                     "primary_corridor":
                         corridor.name,
                     "primary_status":
-                        corridor.status,
+                        primary_status,
                     "alternative_corridor":
                         alternative.name,
                     "alternative_status":
-                        alternative.status,
+                        alternative_status,
                     "route_decision":
                         "reroute",
                     "reason": (
@@ -138,7 +167,6 @@ class RouteAccessAgent:
                     ),
                 }
 
-
             return {
                 "route_available": False,
                 "primary_corridor_id":
@@ -146,7 +174,7 @@ class RouteAccessAgent:
                 "primary_corridor":
                     corridor.name,
                 "primary_status":
-                    corridor.status,
+                    primary_status,
                 "alternative_corridor":
                     (
                         alternative.name
@@ -154,11 +182,7 @@ class RouteAccessAgent:
                         else None
                     ),
                 "alternative_status":
-                    (
-                        alternative.status
-                        if alternative
-                        else None
-                    ),
+                    alternative_status,
                 "route_decision":
                     "blocked",
                 "reason": (
@@ -169,6 +193,9 @@ class RouteAccessAgent:
                 ),
             }
 
+        # ==================================================
+        # UNSUPPORTED STATUS
+        # ==================================================
 
         return {
             "route_available": False,
@@ -177,7 +204,7 @@ class RouteAccessAgent:
             "primary_corridor":
                 corridor.name,
             "primary_status":
-                corridor.status,
+                primary_status,
             "alternative_corridor":
                 None,
             "alternative_status":
@@ -186,6 +213,6 @@ class RouteAccessAgent:
                 "blocked",
             "reason": (
                 "Unsupported road status: "
-                f"{corridor.status}"
+                f"{primary_status}"
             ),
         }

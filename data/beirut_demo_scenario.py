@@ -155,61 +155,88 @@ beirut_relief_centers = [
 
 # ==========================================================
 # REGIONAL HOSPITALS
+# Simulated ARES regional reinforcement resources.
+# These are fictional scenario assets, not real facilities.
 # ==========================================================
 
 beirut_regional_hospitals = [
 
     Hospital(
         hospital_id="B-H03",
-        name="Greater Beirut Hospital Charlie",
+        name="Jounieh Regional Hospital Alpha",
 
-        latitude=33.8658,
-        longitude=35.5425,
+        latitude=33.9808,
+        longitude=35.6175,
 
-        total_capacity=260,
-        available_capacity=180,
+        total_capacity=220,
+        available_capacity=120,
     ),
 
     Hospital(
         hospital_id="B-H04",
-        name="Greater Beirut Hospital Delta",
+        name="Byblos Regional Hospital Bravo",
 
-        latitude=33.9205,
-        longitude=35.5480,
+        latitude=34.1236,
+        longitude=35.6511,
 
-        total_capacity=190,
-        available_capacity=120,
+        total_capacity=180,
+        available_capacity=95,
+    ),
+
+    Hospital(
+        hospital_id="B-H05",
+        name="Tripoli Regional Hospital Charlie",
+
+        latitude=34.4333,
+        longitude=35.8333,
+
+        total_capacity=300,
+        available_capacity=170,
     ),
 ]
 
 
 # ==========================================================
 # REGIONAL RELIEF CENTERS
+# Simulated ARES regional reinforcement resources.
+# These are fictional scenario assets, not real facilities.
 # ==========================================================
 
 beirut_regional_relief_centers = [
 
     ReliefCenter(
         center_id="B-RC02",
-        name="Greater Beirut Relief Center Beta",
+        name="Jounieh Regional Response Unit",
 
-        latitude=33.8668,
-        longitude=35.5298,
-
-        available_volunteers=240,
-        available_medical_teams=5,
-        available_ambulances=11,
-    ),
-
-    ReliefCenter(
-        center_id="B-RC03",
-        name="Greater Beirut Relief Center Gamma",
-
-        latitude=33.9282,
-        longitude=35.5342,
+        latitude=33.9808,
+        longitude=35.6175,
 
         available_volunteers=180,
         available_medical_teams=4,
         available_ambulances=8,
+    ),
+
+    ReliefCenter(
+        center_id="B-RC03",
+        name="Byblos Regional Response Unit",
+
+        latitude=34.1236,
+        longitude=35.6511,
+
+        available_volunteers=140,
+        available_medical_teams=3,
+        available_ambulances=6,
+    ),
+
+    ReliefCenter(
+        center_id="B-RC04",
+        name="Tripoli Regional Response Unit",
+
+        latitude=34.4333,
+        longitude=35.8333,
+
+        available_volunteers=260,
+        available_medical_teams=6,
+        available_ambulances=12,
     ),
 ]

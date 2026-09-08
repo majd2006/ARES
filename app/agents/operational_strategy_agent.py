@@ -172,7 +172,8 @@ class OperationalStrategyAgent:
                             f"{field_medical_post['ambulances_required']} "
                             "ambulances, and "
                             f"{field_medical_post['volunteers_required']} "
-                            "volunteers to field medical operations."
+                            "volunteers from the mobilized response resources "
+                            "to field medical operations."
                         ),
                 }
             )

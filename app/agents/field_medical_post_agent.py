@@ -132,7 +132,11 @@ class FieldMedicalPostAgent:
             ceil(casualties / 500),
         )
 
+        # Allocate field-post staffing from the mobilized response plan.
+        mobilized = response_plan["recommended_resources"]
+
         medical_teams_required = min(
+            mobilized["medical_teams"],
             total_medical_teams,
             max(
                 1,
@@ -141,6 +145,7 @@ class FieldMedicalPostAgent:
         )
 
         ambulances_required = min(
+            mobilized["ambulances"],
             total_ambulances,
             max(
                 1,
@@ -149,6 +154,7 @@ class FieldMedicalPostAgent:
         )
 
         volunteers_required = min(
+            mobilized["volunteers"],
             total_volunteers,
             max(
                 20,

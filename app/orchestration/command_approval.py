@@ -532,6 +532,9 @@ class CommandApprovalManager:
         self,
         reason=None,
     ):
+        """Advance approval for the caller's current decision; reason is text only."""
+        if reason is not None and not isinstance(reason, str):
+            raise ValueError("reason must be a string or None.")
 
         self.state[
             "decision_version"

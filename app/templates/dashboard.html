@@ -672,7 +672,13 @@
         Simulate R01 Network Loss
     {% endif %}
 </button>
-
+<button
+    id="simulate-resource-pressure-button"
+    class="simulation-button warning"
+    type="button"
+>
+    Simulate Resource Pressure
+</button>
                     <button
                         id="reset-simulation-button"
                         class="simulation-button"
@@ -1284,7 +1290,7 @@
 
     <tr
         class="
-        {% if not responder.reachable %}
+        {% if not responder.eligible_for_deployment %}
         row-disabled
         {% endif %}
         "
@@ -2991,7 +2997,11 @@
             </span>
 
             <span>
+                {% if state.scenario.scenario_id == "beirut" %}
+                Registered Beirut Coordinates
+                {% else %}
                 Location Retrieval
+                {% endif %}
             </span>
 
             <span class="camara-policy-arrow">
@@ -3005,9 +3015,14 @@
         </div>
 
         <p>
+            {% if state.scenario.scenario_id == "beirut" %}
+            Device Reachability uses Nokia simulator network state. Location
+            Retrieval is deliberately skipped; Beirut coordinates are scenario-defined.
+            {% else %}
             ARES invokes Location Retrieval only when
             Device Reachability confirms that the responder
             can receive operational communications.
+            {% endif %}
         </p>
 
     </div>
@@ -3738,7 +3753,7 @@
 
                                 {% for responder in state.responders %}
 
-                                    {% if responder.reachable %}
+                                    {% if responder.eligible_for_deployment %}
 
                                         <option
                                             value="{{ responder.team_id }}"

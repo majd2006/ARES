@@ -208,6 +208,198 @@ class DecisionReplanner:
         return changes
 
     # ======================================================
+    # ROUTE ACCESS CHANGES
+    # ======================================================
+
+    def _compare_route_states(
+        self,
+        previous_decision,
+        current_decision,
+    ):
+
+        changes = []
+
+        previous_responders = (
+            self._responders_by_id(
+                previous_decision
+            )
+        )
+
+        current_responders = (
+            self._responders_by_id(
+                current_decision
+            )
+        )
+
+        team_ids = (
+            set(previous_responders)
+            | set(current_responders)
+        )
+
+        route_severity = {
+            "direct": 0,
+            "reroute": 1,
+            "delayed": 2,
+            "unknown": 3,
+            "blocked": 4,
+        }
+
+        for team_id in sorted(team_ids):
+
+            previous = (
+                previous_responders.get(
+                    team_id
+                )
+            )
+
+            current = (
+                current_responders.get(
+                    team_id
+                )
+            )
+
+            if not previous or not current:
+                continue
+
+            previous_decision_value = (
+                previous.get(
+                    "route_decision"
+                )
+            )
+
+            current_decision_value = (
+                current.get(
+                    "route_decision"
+                )
+            )
+
+            previous_available = (
+                previous.get(
+                    "route_available"
+                )
+            )
+
+            current_available = (
+                current.get(
+                    "route_available"
+                )
+            )
+
+            # Standard demo responders do not use the
+            # Beirut route-access model.
+            if (
+                previous_decision_value
+                in (None, "not_applicable")
+                and current_decision_value
+                in (None, "not_applicable")
+            ):
+                continue
+
+            if (
+                previous_decision_value
+                == current_decision_value
+                and previous_available
+                == current_available
+            ):
+                continue
+
+            previous_rank = (
+                route_severity.get(
+                    previous_decision_value,
+                    3,
+                )
+            )
+
+            current_rank = (
+                route_severity.get(
+                    current_decision_value,
+                    3,
+                )
+            )
+
+            route_worsened = (
+                current_rank
+                > previous_rank
+            )
+
+            route_blocked = (
+                current_decision_value
+                == "blocked"
+                or current_available is False
+            )
+
+            route_restored = (
+                previous_available is False
+                and current_available is True
+            )
+
+            if route_blocked:
+
+                severity = "critical"
+
+            elif route_worsened:
+
+                severity = "high"
+
+            elif route_restored:
+
+                severity = "medium"
+
+            else:
+
+                severity = "medium"
+
+            previous_label = (
+                previous_decision_value
+                or "unknown"
+            )
+
+            current_label = (
+                current_decision_value
+                or "unknown"
+            )
+
+            changes.append(
+                {
+                    "type":
+                        "route_access",
+
+                    "team_id":
+                        team_id,
+
+                    "team_name":
+                        current.get(
+                            "name"
+                        ),
+
+                    "previous":
+                        previous_label,
+
+                    "current":
+                        current_label,
+
+                    "previous_available":
+                        previous_available,
+
+                    "current_available":
+                        current_available,
+
+                    "severity":
+                        severity,
+
+                    "message":
+                        (
+                            f"{current.get('name')} "
+                            "route access changed from "
+                            f"{previous_label} to "
+                            f"{current_label}."
+                        ),
+                }
+            )
+
+        return changes
+
+    # ======================================================
     # ASSIGNMENT CHANGES
     # ======================================================
 
@@ -405,22 +597,44 @@ class DecisionReplanner:
 
         changes = []
 
-        previous_resources = (
+        previous_plan = (
             previous_decision.get(
                 "response_plan",
                 {},
-            ).get(
+            )
+        )
+
+        current_plan = (
+            current_decision.get(
+                "response_plan",
+                {},
+            )
+        )
+
+        previous_resources = (
+            previous_plan.get(
                 "recommended_resources",
                 {},
             )
         )
 
         current_resources = (
-            current_decision.get(
-                "response_plan",
-                {},
-            ).get(
+            current_plan.get(
                 "recommended_resources",
+                {},
+            )
+        )
+
+        previous_reserves = (
+            previous_plan.get(
+                "reserve_resources",
+                {},
+            )
+        )
+
+        current_reserves = (
+            current_plan.get(
+                "reserve_resources",
                 {},
             )
         )
@@ -435,6 +649,10 @@ class DecisionReplanner:
             "volunteers":
                 "volunteers",
         }
+
+        # ======================================================
+        # REQUIRED RESOURCE CHANGES
+        # ======================================================
 
         for (
             resource_key,
@@ -491,6 +709,102 @@ class DecisionReplanner:
                             ),
                     }
                 )
+
+        # ======================================================
+        # OPERATIONAL RESERVE CHANGES
+        # ======================================================
+
+        for (
+            resource_key,
+            display_name,
+        ) in resource_names.items():
+
+            previous_value = (
+                previous_reserves.get(
+                    resource_key
+                )
+            )
+
+            current_value = (
+                current_reserves.get(
+                    resource_key
+                )
+            )
+
+            if (
+                previous_value is None
+                or current_value is None
+                or previous_value
+                == current_value
+            ):
+                continue
+
+            reserve_exhausted = (
+                previous_value > 0
+                and current_value == 0
+            )
+
+            reserve_reduced = (
+                current_value
+                < previous_value
+            )
+
+            if reserve_exhausted:
+
+                severity = "high"
+
+                message = (
+                    f"Local reserve of "
+                    f"{display_name} was exhausted "
+                    f"from {previous_value} to 0."
+                )
+
+            elif reserve_reduced:
+
+                severity = "medium"
+
+                message = (
+                    f"Local reserve of "
+                    f"{display_name} decreased "
+                    f"from {previous_value} "
+                    f"to {current_value}."
+                )
+
+            else:
+
+                severity = "low"
+
+                message = (
+                    f"Local reserve of "
+                    f"{display_name} increased "
+                    f"from {previous_value} "
+                    f"to {current_value}."
+                )
+
+            changes.append(
+                {
+                    "type":
+                        "resource_reserve",
+
+                    "resource":
+                        resource_key,
+
+                    "previous":
+                        previous_value,
+
+                    "current":
+                        current_value,
+
+                    "reserve_exhausted":
+                        reserve_exhausted,
+
+                    "severity":
+                        severity,
+
+                    "message":
+                        message,
+                }
+            )
 
         return changes
 
@@ -609,6 +923,13 @@ class DecisionReplanner:
             )
         )
 
+        route_changes = (
+            self._compare_route_states(
+                previous_decision,
+                current_decision,
+            )
+        )
+
         assignment_changes = (
             self._compare_assignments(
                 previous_decision,
@@ -632,6 +953,7 @@ class DecisionReplanner:
 
         changes = (
             responder_changes
+            + route_changes
             + assignment_changes
             + resource_changes
             + incident_changes
@@ -640,9 +962,11 @@ class DecisionReplanner:
         material_types = {
             "network_reachability",
             "deployment_eligibility",
+            "route_access",
             "deployment_removed",
             "deployment_added",
             "resource_requirement",
+            "resource_reserve",
             "incident_state",
         }
 
@@ -719,7 +1043,10 @@ class DecisionReplanner:
                     len(
                         responder_changes
                     ),
-
+                "routes_changed":
+                    len(
+                        route_changes
+                    ),
                 "assignments_changed":
                     len(
                         assignment_changes
