@@ -35,11 +35,55 @@ class RuntimeResourcePressureTests(unittest.TestCase):
             self.assertEqual(after['response_plan']['reserve_resources'][key], 0)
         reserve_action = next(a for a in after['operational_strategy']['actions']
                               if a['category'] == 'Operational Reserve')
-        self.assertIn('0 medical teams, 0 ambulances', reserve_action['description'])
+        reserve = before['response_plan']['reserve_resources']
+        baseline_action = next(a for a in before['operational_strategy']['actions']
+                               if a['category'] == 'Operational Reserve')
+        self.assertEqual(baseline_action['description'],
+                         f"Keep {reserve['medical_teams']} medical teams, "
+                         f"{reserve['ambulances']} ambulances, and "
+                         f"{reserve['volunteers']} volunteers in reserve "
+                         "for escalation or secondary incidents.")
+        self.assertEqual(reserve_action['description'],
+                         "Local medical-team and ambulance reserves are exhausted. "
+                         f"Maintain {reserve['volunteers']} volunteers in reserve and "
+                         "activate resource escalation for additional medical "
+                         "and transport capacity.")
+        self.assertNotIn('Keep 0 medical teams', reserve_action['description'])
+        self.assertNotIn('0 ambulances', reserve_action['description'])
         self.assertEqual(before_data, relief_centers)
         self.assertTrue(DecisionReplanner().compare(before, after,
                         trigger={'type': 'resource_pressure'})['requires_replanning'])
         self.location.assert_not_called()
+
+    def test_partial_reserve_exhaustion_wording(self):
+        from types import SimpleNamespace
+        from app.agents.operational_strategy_agent import OperationalStrategyAgent
+        zone = SimpleNamespace(name='Test zone', severity='critical',
+                               estimated_critical=1, estimated_casualties=2)
+        for medical, ambulances, volunteers, exhausted, remaining in (
+            (0, 4, 19, 'medical-team', '4 ambulances and 19 volunteers'),
+            (3, 0, 19, 'ambulance', '3 medical teams and 19 volunteers'),
+            (0, 0, 0, 'medical-team and ambulance', None),
+        ):
+            with self.subTest(medical=medical, ambulances=ambulances):
+                reserve = dict(medical_teams=medical, ambulances=ambulances,
+                               volunteers=volunteers)
+                plan = dict(reserve_resources=reserve, recommended_resources=reserve,
+                            responder_assignments=[], hospital_allocations=[],
+                            unallocated_critical_patients=0)
+                original = deepcopy(plan)
+                result = OperationalStrategyAgent().generate_strategy(zone, plan, [])
+                action = next(a for a in result['actions']
+                              if a['category'] == 'Operational Reserve')
+                text = action['description']
+                self.assertIn(f'Local {exhausted} reserves are exhausted.', text)
+                self.assertNotIn('0 medical teams', text)
+                self.assertNotIn('0 ambulances', text)
+                if remaining:
+                    self.assertIn(f'Maintain {remaining} in reserve', text)
+                else:
+                    self.assertIn('No local operational reserves remain.', text)
+                self.assertEqual(plan, original)
 
     def test_only_outside_excludes_geographically(self):
         orchestrator = ARESOrchestrator()

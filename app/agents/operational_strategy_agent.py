@@ -229,17 +229,50 @@ class OperationalStrategyAgent:
 
         reserve = response_plan["reserve_resources"]
 
+        reserve_title = "Maintain emergency reserve"
+        reserve_description = (
+            f"Keep {reserve['medical_teams']} medical teams, "
+            f"{reserve['ambulances']} ambulances, and "
+            f"{reserve['volunteers']} volunteers in reserve "
+            "for escalation or secondary incidents."
+        )
+
+        exhausted = [
+            label for key, label in (
+                ("medical_teams", "medical-team"),
+                ("ambulances", "ambulance"),
+            ) if reserve[key] == 0
+        ]
+        if exhausted:
+            reserve_title = "Address local reserve exhaustion"
+            available = [
+                f"{reserve[key]} {label}" for key, label in (
+                    ("medical_teams", "medical teams"),
+                    ("ambulances", "ambulances"),
+                    ("volunteers", "volunteers"),
+                ) if reserve[key] > 0
+            ]
+            reserve_description = (
+                f"Local {' and '.join(exhausted)} reserves are exhausted. "
+            )
+            if available:
+                reserve_description += (
+                    f"Maintain {' and '.join(available)} in reserve and "
+                    "activate resource escalation for additional medical "
+                    "and transport capacity."
+                )
+            else:
+                reserve_description += (
+                    "No local operational reserves remain. Activate resource "
+                    "escalation for additional medical and transport capacity."
+                )
+
         actions.append(
             {
                 "priority": len(actions) + 1,
                 "category": "Operational Reserve",
-                "title": "Maintain emergency reserve",
-                "description": (
-                    f"Keep {reserve['medical_teams']} medical teams, "
-                    f"{reserve['ambulances']} ambulances, and "
-                    f"{reserve['volunteers']} volunteers in reserve "
-                    "for escalation or secondary incidents."
-                ),
+                "title": reserve_title,
+                "description": reserve_description,
             }
         )
 
