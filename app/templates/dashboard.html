@@ -672,6 +672,16 @@
         Simulate R01 Network Loss
     {% endif %}
 </button>
+{% if state.scenario.scenario_id == "beirut" %}
+<button
+    id="simulate-road-obstruction-button"
+    class="simulation-button warning"
+    type="button"
+    title="Controlled simulated road obstruction: BR-05 / B-R02; not live road intelligence"
+>
+    Simulate Road Obstruction
+</button>
+{% endif %}
 <button
     id="simulate-resource-pressure-button"
     class="simulation-button warning"

@@ -1235,6 +1235,24 @@ const demoStandardScenarioButton =
         "demo-standard-scenario-button"
     );
 
+const simulateRoadObstructionButton =
+    document.getElementById(
+        "simulate-road-obstruction-button"
+    );
+
+if (simulateRoadObstructionButton) {
+    simulateRoadObstructionButton.addEventListener(
+        "click",
+        () => {
+            runDemoAction(
+                simulateRoadObstructionButton,
+                "/api/simulations/road-obstruction",
+                { corridor_id: "BR-05" }
+            );
+        }
+    );
+}
+
 const simulateResourcePressureButton =
     document.getElementById(
         "simulate-resource-pressure-button"
