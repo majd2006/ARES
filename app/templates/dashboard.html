@@ -1380,7 +1380,11 @@
                     unreachable
                     "
                 >
+                    {% if responder.runtime_network_override %}
+                    UNREACHABLE (SIMULATED)
+                    {% else %}
                     UNREACHABLE
+                    {% endif %}
                 </span>
 
             {% endif %}
@@ -1767,6 +1771,7 @@
 
 
                             <div class="geofence-event-main">
+                                <div>{{ event.delivery_label }}</div>
 
                                 <strong>
                                     {{
@@ -1832,7 +1837,7 @@
 
                     <div class="geofence-empty">
 
-                        Waiting for Nokia geofencing events...
+                        Waiting for geofencing callbacks...
 
                     </div>
 

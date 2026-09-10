@@ -523,6 +523,8 @@ class ARESOrchestrator:
                         "type":
                             "network_outage",
 
+                        "source": "live_demo_simulation",
+
                         "team_id":
                             responder[
                                 "team_id"
@@ -538,9 +540,8 @@ class ARESOrchestrator:
 
                         "message":
                             (
-                                f"{responder['name']} "
-                                "lost operational "
-                                "network connectivity."
+                                f"Simulated network outage: {responder['name']} "
+                                "is forced unreachable by the runtime demo override."
                             ),
                     }
                 )

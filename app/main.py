@@ -1811,6 +1811,13 @@ def receive_geofence_event():
         ""
     )
 
+    callback_source = event.get("source") or "unspecified_webhook_source"
+    simulated_callback = callback_source == "controlled_simulated_callback"
+    callback_label = (
+        "Controlled simulated geofence callback"
+        if simulated_callback else "Geofence webhook (delivery not verified)"
+    )
+
     event_data = event.get(
         "data",
         {}
@@ -2003,6 +2010,8 @@ def receive_geofence_event():
     # ======================================================
 
     stored_event = {
+        "source": callback_source,
+        "delivery_label": callback_label,
 
         "event_id":
             event.get(
@@ -2328,7 +2337,7 @@ def receive_geofence_event():
             "geofence_transition",
 
         "source":
-            "camara_geofencing_webhook",
+            callback_source,
 
         "team_id":
             team_id,
@@ -2351,7 +2360,7 @@ def receive_geofence_event():
             ),
 
         "message":
-            event_message,
+            f"{callback_label}: {event_message}",
     }
 
     simulation_state[
@@ -2439,7 +2448,7 @@ def receive_geofence_event():
                     final_status,
 
                 "source":
-                    "camara_geofencing_webhook",
+                    callback_source,
             },
         )
     )
@@ -2472,8 +2481,7 @@ def receive_geofence_event():
         command_approval_manager.register_new_decision(
             reason=(
                 "ARES generated a revised operational "
-                "decision after a CAMARA Geofencing "
-                "state transition."
+                f"decision after {callback_label.lower()}."
             )
         )
 
@@ -2488,7 +2496,7 @@ def receive_geofence_event():
 
             "message":
                 (
-                    "CAMARA Geofencing state changed. "
+                    f"{callback_label}: state changed. "
                     "ARES evaluated the operational "
                     "impact and completed dynamic "
                     "replanning."
@@ -2706,6 +2714,7 @@ def simulate_network_outage():
     )
 
     event = {
+        "source": "live_demo_simulation",
         "type":
             "network_outage",
 
@@ -2722,9 +2731,8 @@ def simulate_network_outage():
 
         "message":
             (
-                f"{selected_responder.name} "
-                "lost operational network "
-                "connectivity."
+                f"Simulated network outage: {selected_responder.name} "
+                "is forced unreachable by the runtime demo override."
             ),
     }
 
@@ -2826,7 +2834,7 @@ def simulate_network_outage():
     command_approval_manager.register_new_decision(
         reason=(
             "ARES generated a revised operational "
-            "decision after a network outage."
+            "decision after a simulated network outage."
         )
     )
     # ======================================================
@@ -2840,7 +2848,7 @@ def simulate_network_outage():
 
             "message":
                 (
-                    "Network outage detected. "
+                    "Simulated network outage applied. "
                     "ARES completed dynamic "
                     "operational replanning."
                 ),

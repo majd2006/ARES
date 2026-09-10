@@ -72,8 +72,12 @@ class OperationalStrategyAgent:
                         f"{responder['name']} is currently "
                         f"{responder['distance_to_disaster_km']} km "
                         "from the incident but is excluded because "
-                        "Nokia Network-as-Code reports the unit as "
-                        "unreachable."
+                        + (
+                            "a simulated runtime network override marks the unit "
+                            "unreachable; this is not a Nokia-delivered outage."
+                            if responder.get("runtime_network_override", False)
+                            else "Nokia Network-as-Code reports the unit as unreachable."
+                        )
                     ),
                 }
             )

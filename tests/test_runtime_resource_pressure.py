@@ -152,11 +152,27 @@ class RuntimeResourcePressureTests(unittest.TestCase):
                 team = dashboard.get_active_scenario()['responders'][1]
                 self.assertEqual(client.post('/api/events/geofence', json={
                     'type': 'org.camaraproject.geofencing-subscriptions.v0.area-left',
-                    'source': 'isolated_test_simulated_callback',
+                    'source': 'controlled_simulated_callback',
                     'data': {'device': {'phoneNumber': team.phone_number}}}).status_code, 200)
+                self.assertEqual(dashboard.geofence_state['events'][0]['source'],
+                                 'controlled_simulated_callback')
+                self.assertIn('Controlled simulated geofence callback', client.get('/').text)
                 first = dashboard.get_active_scenario()['responders'][0]
-                self.assertEqual(client.post('/api/simulations/network-outage',
-                                 json={'team_id': first.team_id}).status_code, 200)
+                outage = client.post('/api/simulations/network-outage',
+                                     json={'team_id': first.team_id})
+                self.assertEqual(outage.status_code, 200)
+                self.assertEqual(outage.json['event']['source'], 'live_demo_simulation')
+                self.assertIn('Simulated network outage', outage.json['event']['message'])
+                current = outage.json['decision']['current']
+                event = next(e for e in current['runtime_events']
+                             if e['type'] == 'network_outage')
+                self.assertEqual(event['source'], 'live_demo_simulation')
+                for state in (current, outage.json['dashboard_state']):
+                    action = next(a for a in state['operational_strategy']['actions']
+                                  if a['title'] == f'Do not dispatch {first.name}')
+                    self.assertIn('simulated runtime network override', action['description'])
+                    self.assertNotIn('Nokia Network-as-Code reports', action['description'])
+                self.assertIn('UNREACHABLE (SIMULATED)', client.get('/').text)
                 decision = dashboard.replanning_state['current_decision']
                 self.assertEqual(decision['response_plan']['reserve_resources']['ambulances'], 0)
                 excluded = next(r for r in decision['responders'] if r['team_id'] == team.team_id)
