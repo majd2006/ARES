@@ -1,12 +1,12 @@
 # ARES — AI-Powered Adaptive Emergency Response System
 
-**MENA Ignite Open Gateway Hackathon 2026**
-**Team:** Junior Engineers
+**MENA Ignite Open Gateway Hackathon 2026**  
+**Team:** Junior Engineers  
 **Members:** Majd Kassem · Zein El Abidine El Assaad
 
 ARES is a network-aware, AI-assisted emergency-response orchestration platform designed to help emergency organizations make faster and more informed operational decisions during large-scale incidents.
 
-The system combines incident information, responder resources, hospital capacity, geographic data, and telecommunications network intelligence to generate and dynamically update an actionable emergency-response plan.
+The system combines incident intelligence, responder resources, hospital capacity, geographic information, operational constraints, and telecommunications network intelligence to generate and dynamically update an actionable emergency-response strategy.
 
 > **ARES turns fragmented emergency information into faster, network-aware operational decisions when every minute matters.**
 
@@ -16,301 +16,636 @@ The system combines incident information, responder resources, hospital capacity
 
 During disasters such as explosions, earthquakes, major fires, infrastructure failures, and mass-casualty incidents, emergency commanders must make high-impact decisions within minutes.
 
-However, the required information is often fragmented across different systems:
+However, critical information is often fragmented across different systems:
 
-* responder teams;
-* hospitals;
-* relief centers;
-* geographic information;
-* emergency incident data;
-* telecommunications systems.
+- responder teams;
+- hospitals;
+- relief centers;
+- geographic and road information;
+- emergency incident data;
+- telecommunications systems.
 
-A responder may exist in an operational database while being unreachable on the network.
+A responder may exist in an operational database while being unreachable through the network.
 
-Similarly, the closest team is not necessarily the most suitable team if its specialization, availability, or connectivity does not match the incident.
+Similarly, the geographically closest team is not necessarily the best team to deploy if its specialization, availability, connectivity, or route accessibility does not match current operational conditions.
 
-ARES addresses this operational gap by combining emergency-resource information with real-time network-aware signals before recommending deployment.
+Emergency plans can also become obsolete within minutes when:
+
+- communications fail;
+- roads become obstructed;
+- casualty estimates increase;
+- hospital capacity changes;
+- local resources become insufficient;
+- responder availability changes.
+
+ARES addresses this operational gap by combining emergency-resource information with network and operational intelligence before recommending deployment — and recalculating the strategy when conditions change.
 
 ---
 
-## Core Concept
+# Final Prototype Capabilities
 
-ARES operates as an AI-assisted coordination layer between emergency information sources and human decision-makers.
+The current ARES prototype demonstrates:
 
-The orchestration workflow is:
+- Disaster assessment and casualty estimation
+- Network-aware responder evaluation
+- Responder ranking and deployment prioritization
+- Nokia Network as Code / CAMARA integration
+- Device reachability intelligence
+- Network-supported location intelligence
+- Agentic multi-API orchestration
+- Resource optimization
+- Hospital allocation
+- Regional reinforcement
+- Dynamic operational replanning
+- Network-outage response
+- Road-obstruction-aware planning
+- Resource-pressure detection and escalation
+- Field medical post recommendation
+- Safe staging-site selection
+- CAMARA observability
+- Degraded-mode network resilience
+- Human-in-the-loop command governance
+- Commander approve/reject workflow
+- Interactive Beirut operational dashboard
+- Scenario reset and live demonstration controls
+
+ARES is not a static emergency dashboard.
+
+It is designed as an **adaptive operational decision-support system** whose recommendations can change as the incident, network, resource, and accessibility state changes.
+
+---
+
+# Core Concept
+
+ARES operates as an intelligent coordination layer between emergency information sources, telecom-network intelligence, operational resources, and human commanders.
 
 ```text
-Incident
-   ↓
+Incident / Operational Data
+          ↓
 Disaster Assessment
-   ↓
+          ↓
 Network Intelligence
-   ↓
+          ↓
 Responder Evaluation
-   ↓
+          ↓
 Responder Ranking
-   ↓
+          ↓
 Resource Optimization
-   ↓
-Response Planning
-   ↓
+          ↓
+Operational Planning
+          ↓
+ARES Orchestrator
+          ↓
 Operational Strategy
-   ↓
+          ↓
 Dynamic Replanning
+          ↓
+Human Command Decision
+          ↓
+Approve / Reject
 ```
 
 ARES remains **human-in-the-loop by design**.
 
-The system recommends operational actions, while emergency commanders retain final authority.
+The system generates and updates recommendations, while emergency commanders retain final operational authority.
+
+> **AI recommends. Network intelligence validates. Humans decide.**
 
 ---
 
-## Key Capabilities
+# System Architecture
 
-### Disaster Assessment
+ARES uses a modular architecture in which specialized decision agents contribute to a unified orchestration layer.
 
-ARES evaluates incident information to determine factors such as:
+```text
+┌───────────────────────────────────────────┐
+│             DATA / FIELD LAYER            │
+│                                           │
+│ Incident Data                             │
+│ Responder Teams                           │
+│ Hospitals                                 │
+│ Relief Centers                            │
+│ Road Network                              │
+│ Candidate Staging Sites                   │
+└─────────────────────┬─────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────┐
+│        TELECOM / NETWORK API LAYER        │
+│                                           │
+│ Nokia Network as Code / CAMARA            │
+│ • Device Reachability                     │
+│ • Location Retrieval                      │
+│ • Geofencing Integration                  │
+│ • Network Observability                   │
+│ • Degraded-Mode Handling                  │
+└─────────────────────┬─────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────┐
+│          ARES INTELLIGENCE LAYER          │
+│                                           │
+│ Disaster Assessment                       │
+│ Incident Reassessment                     │
+│ Responder Evaluation                      │
+│ Responder Ranking                         │
+│ Resource Optimization                     │
+│ Regional Reinforcement                    │
+│ Route Accessibility                       │
+│ Field Medical Post Selection              │
+│ Safe Staging Site Selection               │
+│ Operational Strategy                      │
+└─────────────────────┬─────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────┐
+│          ORCHESTRATION LAYER              │
+│                                           │
+│ ARES Orchestrator                         │
+│ Decision Replanner                        │
+│ Command Approval / Governance             │
+│ Runtime State Coordination                │
+└─────────────────────┬─────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────┐
+│       PRESENTATION / COMMAND LAYER        │
+│                                           │
+│ Flask Backend                             │
+│ REST API                                  │
+│ Interactive Dashboard                     │
+│ Leaflet + OpenStreetMap                   │
+│ Operational Strategy                      │
+│ Dynamic Replanning                        │
+│ Commander Approve / Reject                │
+└───────────────────────────────────────────┘
+```
 
-* incident severity;
-* affected geographic area;
-* estimated exposed population;
-* estimated casualties;
-* estimated critical casualties.
+---
 
-### Network-Aware Responder Evaluation
+# AI / Decision Agents
 
-Responder availability is evaluated using both operational information and telecom-network intelligence.
+ARES separates operational responsibilities into specialized modules so that each stage can be independently developed, tested, and extended.
 
-Factors include:
+## Disaster Assessment Agent
 
-* responder specialization;
-* distance from the incident;
-* deployment eligibility;
-* device reachability;
-* network-supported location information.
+Analyzes incident information and estimates:
 
-An unreachable responder can be removed from immediate deployment consideration.
+- incident severity;
+- affected geographic area;
+- exposed population;
+- estimated casualties;
+- estimated critical casualties.
 
-### Responder Ranking
+## Incident Ingestion Agent
 
-Eligible responder teams are prioritized according to operational suitability, including:
+Transforms incoming incident information into structured operational data that can be consumed by the rest of the ARES pipeline.
 
-* proximity;
-* specialization;
-* network reachability;
-* current operational constraints.
+## Incident Reassessment Agent
 
-### Resource Optimization
+Re-evaluates the incident when operational conditions or incident characteristics change.
 
-ARES estimates and allocates resources such as:
+## Network Intelligence Agent
 
-* medical teams;
-* rescue teams;
-* ambulances;
-* volunteers;
-* hospital capacity.
+Connects telecommunications information with responder evaluation and orchestration.
 
-### Hospital Allocation
+It enables network state to influence operational decisions instead of treating connectivity as a passive status indicator.
 
-Critical casualties can be distributed across available hospitals according to their remaining capacity rather than sending all casualties to a single facility.
+## Responder Evaluator
 
-### Regional Reinforcement
+Determines whether responder teams are operationally eligible for deployment.
 
-If local resources are insufficient, ARES can calculate additional reinforcement requirements from nearby resources.
+Factors can include:
 
-### Dynamic Replanning
+- specialization;
+- location;
+- distance;
+- availability;
+- device reachability;
+- current operational constraints.
 
-ARES is designed to recalculate its operational strategy when conditions change.
+## Responder Ranker
+
+Prioritizes eligible responders according to operational suitability.
+
+## Response Planning Agent
+
+Calculates required emergency resources and produces responder assignments and hospital allocations.
+
+## Resource Escalation Agent
+
+Detects situations where available local resources are insufficient for the estimated emergency requirements.
+
+## Regional Reinforcement Agent
+
+Calculates additional resources that can be requested from surrounding response capacity when local resources are insufficient.
+
+## Operational Strategy Agent
+
+Combines operational outputs into a prioritized emergency-response strategy.
+
+The final prototype also accounts for runtime resource pressure and changing operational conditions.
+
+## Field Medical Post Agent
+
+Evaluates the operational need and potential placement of a temporary field medical post during high-casualty scenarios.
+
+## Staging Site Agent
+
+Evaluates candidate locations for safe operational staging based on incident and resource context.
+
+## Route Access Agent
+
+Introduces road-accessibility constraints into deployment planning.
+
+This allows ARES to demonstrate that a responder can be:
+
+- available;
+- reachable;
+- geographically close;
+
+while still being operationally unsuitable if its route becomes obstructed.
+
+---
+
+# ARES Orchestration Layer
+
+The final prototype introduces a dedicated orchestration layer:
+
+```text
+app/orchestration/
+├── __init__.py
+├── ares_orchestrator.py
+├── command_approval.py
+└── decision_replanner.py
+```
+
+## ARES Orchestrator
+
+The orchestrator coordinates the specialized ARES agents and combines their outputs into a unified operational state.
+
+Instead of requiring the dashboard or API layer to independently execute every decision module, the orchestrator provides a structured workflow for processing incident, responder, network, resource, and planning information.
+
+## Decision Replanner
+
+The decision replanner compares the current operational state with changing conditions.
+
+When a material change occurs, ARES can produce a revised plan.
 
 Examples include:
 
-* incident escalation;
-* loss of network connectivity;
-* responder unavailability;
-* resource shortages;
-* changing hospital capacity.
+- responder network loss;
+- road obstruction;
+- resource pressure;
+- incident escalation;
+- changes in responder eligibility.
+
+## Command Approval
+
+ARES includes a human-in-the-loop command-governance layer.
+
+Operational recommendations can be:
+
+- reviewed;
+- approved;
+- rejected;
+- associated with commander information and notes.
+
+This prevents the prototype from treating AI-generated recommendations as autonomous real-world emergency commands.
 
 ---
 
-# Nokia Network as Code Integration
+# Nokia Network as Code / CAMARA Integration
 
-Telecommunications information is part of the ARES decision loop rather than being used only as a communication channel.
+Telecommunications intelligence is integrated into the ARES decision loop rather than being used only as a communication channel.
 
-The current prototype demonstrates two main Nokia Network as Code capabilities.
+The prototype primarily demonstrates:
+
+- **Device Reachability**
+- **Location Retrieval**
+
+The repository also contains experimental geofencing functionality and resilience logic around network/API availability.
+
+---
 
 ## Device Reachability
 
-ARES can query whether a responder device is reachable through the telecom network.
-
-The result can directly affect deployment eligibility.
+ARES can evaluate whether a responder device is reachable through the telecommunications network.
 
 ```text
-Responder available in database
-            ↓
-Nokia Device Reachability
-            ↓
-Reachable?
-       ↙          ↘
-     Yes           No
-      ↓             ↓
-Evaluate       Exclude from
-for dispatch   immediate deployment
+Responder Available
+        ↓
+Device Reachability
+        ↓
+    Reachable?
+      /    \
+    Yes     No
+     ↓       ↓
+Evaluate   Exclude / Replan
 ```
+
+This allows telecom-network state to directly affect operational deployment recommendations.
+
+A nearby responder is not automatically considered deployable if the system determines that communications cannot reliably reach that responder.
+
+---
 
 ## Location Retrieval
 
-Network-supported location information can be used for:
+Network-supported location information can contribute to:
 
-* responder proximity assessment;
-* distance calculations;
-* responder ranking;
-* deployment prioritization.
+- responder proximity assessment;
+- distance calculations;
+- responder ranking;
+- deployment prioritization;
+- operational awareness.
+
+Location uncertainty can also be represented as part of the network-derived information.
+
+---
 
 ## Geofencing
 
-The repository also contains an experimental Nokia Network as Code geofencing integration that supports subscription-based location events.
+The repository contains Nokia Network as Code geofencing functionality for subscription-based location events.
 
 The primary demonstrated hackathon workflow focuses on **Device Reachability** and **Location Retrieval**.
 
 ---
 
-# AI / Decision Modules
+# CAMARA Resilience and Observability
 
-ARES uses a modular architecture so that individual stages can be tested and extended independently.
+The final prototype includes additional handling for telecommunications API behavior.
 
-```text
-app/agents/
-├── disaster_assessment_agent.py
-├── incident_ingestion_agent.py
-├── incident_reassessment_agent.py
-├── network_agent.py
-├── operational_strategy_agent.py
-├── regional_reinforcement_agent.py
-├── resource_escalation_agent.py
-├── responder_evaluator.py
-└── response_planning_agent.py
-```
+ARES exposes network/CAMARA state to the operational workflow so that the system can distinguish between available network intelligence and degraded conditions.
 
-### Disaster Assessment Agent
+The architecture is designed so that a temporary API or network limitation does not automatically collapse the entire emergency-response workflow.
 
-Analyzes the incident and estimates severity and human impact.
+Instead, the system can expose degraded network intelligence and preserve the distinction between:
 
-### Incident Ingestion Agent
+- confirmed network information;
+- simulated/demo information;
+- degraded or unavailable network information.
 
-Transforms incoming incident information into structured operational data.
-
-### Incident Reassessment Agent
-
-Re-evaluates the incident when conditions change.
-
-### Network Intelligence Agent
-
-Connects telecom-network information with responder evaluation.
-
-### Responder Evaluator
-
-Determines whether responders are operationally eligible for deployment.
-
-### Responder Ranker
-
-Ranks eligible responders according to deployment priority.
-
-### Response Planning Agent
-
-Determines required resources and operational assignments.
-
-### Resource Escalation Agent
-
-Detects when current resources are insufficient.
-
-### Regional Reinforcement Agent
-
-Calculates reinforcement that can be obtained from surrounding resources.
-
-### Operational Strategy Agent
-
-Combines outputs from the other modules into a structured emergency-response strategy.
+This improves operational transparency and prevents network uncertainty from being silently treated as verified data.
 
 ---
 
-# Technical Architecture
+# Dynamic Operational Replanning
+
+Dynamic replanning is one of the central capabilities of the final ARES prototype.
+
+A baseline operational plan can be generated using the current:
+
+- incident assessment;
+- responder state;
+- network state;
+- hospital capacity;
+- available resources;
+- geographic constraints.
+
+ARES then evaluates whether subsequent changes materially affect the existing plan.
 
 ```text
-┌──────────────────────────────────────┐
-│         DATA / FIELD LAYER           │
-│                                      │
-│ Incident Data                        │
-│ Responder Teams                      │
-│ Hospitals                            │
-│ Relief Centers                       │
-└─────────────────┬────────────────────┘
-                  │
-                  ▼
-┌──────────────────────────────────────┐
-│        NETWORK API LAYER             │
-│                                      │
-│ Nokia Network as Code                │
-│ • Device Reachability                │
-│ • Location Retrieval                 │
-│ • Geofencing integration             │
-└─────────────────┬────────────────────┘
-                  │
-                  ▼
-┌──────────────────────────────────────┐
-│       ARES INTELLIGENCE LAYER        │
-│                                      │
-│ Disaster Assessment                  │
-│ Responder Evaluation                 │
-│ Ranking                              │
-│ Resource Optimization                │
-│ Regional Reinforcement               │
-│ Operational Strategy                 │
-└─────────────────┬────────────────────┘
-                  │
-                  ▼
-┌──────────────────────────────────────┐
-│      PRESENTATION / ACTION LAYER     │
-│                                      │
-│ Flask Backend                        │
-│ REST Endpoints                       │
-│ Interactive Dashboard               │
-│ Leaflet + OpenStreetMap              │
-│ Dynamic Replanning                   │
-└──────────────────────────────────────┘
+Baseline Operational Plan
+          ↓
+Operational Change
+          ↓
+Material Impact?
+       /       \
+     No         Yes
+     ↓           ↓
+Maintain      Re-evaluate
+Plan          Responders
+                 ↓
+             Recalculate
+                 ↓
+             Revised Plan
 ```
+
+Examples of replanning triggers include:
+
+- responder network outage;
+- road obstruction;
+- responder unavailability;
+- resource pressure;
+- incident escalation;
+- changing operational constraints.
+
+---
+
+# Network-Outage Replanning
+
+A key demonstration scenario simulates the loss of connectivity to a responder included in the baseline plan.
+
+Example:
+
+```text
+BASELINE
+
+R01 + R02 + R03
+      ↓
+Network outage affects R01
+      ↓
+R01 becomes operationally unsuitable
+      ↓
+ARES detects material change
+      ↓
+Replanning
+      ↓
+R02 + R03 / revised resource strategy
+```
+
+This demonstrates why network intelligence can become an operational input rather than simply a communications feature.
+
+---
+
+# Road-Obstruction Replanning
+
+The final prototype also introduces road-access constraints.
+
+During the live demo, a road obstruction can change the accessibility of responder resources.
+
+ARES can then reassess the operational strategy based on the updated route state.
+
+This demonstrates an important distinction:
+
+> **The closest responder is not necessarily the fastest deployable responder.**
+
+A team can be physically close to the incident but operationally disadvantaged by route obstruction.
+
+---
+
+# Resource Pressure and Reinforcement
+
+ARES compares estimated incident requirements with available response resources.
+
+When the system detects insufficient local capacity, it can:
+
+1. identify the resource deficit;
+2. escalate the requirement;
+3. calculate regional reinforcement;
+4. update the operational strategy.
+
+This can include requirements involving:
+
+- medical teams;
+- rescue teams;
+- ambulances;
+- volunteers;
+- hospital capacity.
+
+---
+
+# Hospital Allocation
+
+ARES can distribute estimated critical casualties across available hospitals according to remaining capacity.
+
+This avoids a simplistic strategy where all casualties are routed to the nearest hospital regardless of available capacity.
+
+The allocation logic supports a more balanced operational response.
+
+---
+
+# Field Medical Post Recommendation
+
+When casualty pressure and transport requirements justify additional medical capacity, ARES can evaluate a field medical post as part of the response strategy.
+
+The field medical post module demonstrates how future versions of ARES could support temporary medical infrastructure planning during mass-casualty incidents.
+
+---
+
+# Safe Staging Site Selection
+
+ARES includes a staging-site decision module for evaluating candidate operational locations.
+
+Staging areas can support:
+
+- responder coordination;
+- equipment organization;
+- ambulance operations;
+- reinforcement arrival;
+- temporary command activities.
+
+This adds geographic operational planning beyond simple responder-to-incident routing.
+
+---
+
+# Beirut Demonstration Scenario
+
+The final prototype includes a Beirut-focused demonstration scenario.
+
+Scenario-specific data is located under:
+
+```text
+data/
+├── beirut_demo_scenario.py
+├── beirut_road_network.py
+├── beirut_staging_sites.py
+└── demo_scenario.py
+```
+
+The scenario is designed to demonstrate the complete ARES workflow under a severe urban emergency.
+
+ARES evaluates:
+
+- disaster severity;
+- estimated exposed population;
+- estimated casualties;
+- critical casualties;
+- responder availability;
+- responder specialization;
+- network reachability;
+- responder location;
+- hospital capacity;
+- regional reinforcement;
+- road accessibility;
+- staging-site options;
+- field medical requirements.
+
+The scenario can then be modified during runtime to demonstrate adaptive replanning.
+
+---
+
+# Human-in-the-Loop Command Governance
+
+ARES is a **decision-support system**, not an autonomous emergency commander.
+
+The final prototype therefore includes explicit command governance.
+
+The dashboard allows recommendations to be reviewed and supports command decisions such as:
+
+```text
+ARES Recommendation
+        ↓
+Commander Review
+      /       \
+  APPROVE    REJECT
+      ↓         ↓
+Decision state recorded
+```
+
+Commander information and notes can be associated with the decision workflow.
+
+This architecture preserves human authority over high-impact emergency decisions.
+
+---
+
+# Interactive Operational Dashboard
+
+ARES includes a web-based command dashboard built using:
+
+- Flask;
+- HTML;
+- CSS;
+- JavaScript;
+- Leaflet;
+- OpenStreetMap.
+
+The dashboard visualizes operational information including the active incident and relevant response resources.
+
+It also exposes the system's operational strategy, network intelligence, replanning behavior, and command controls.
+
+The final dashboard is designed for demonstration of the complete ARES decision loop rather than simply displaying static emergency data.
 
 ---
 
 # Technology Stack
 
-### Backend
+## Backend
 
-* Python
-* Flask
+- Python
+- Flask
+- REST API architecture
 
-### Telecom Integration
+## Telecom Integration
 
-* Nokia Network as Code
-* Nokia Network as Code Python SDK
-* REST API integration
-* Device Reachability
-* Location Retrieval
+- Nokia Network as Code
+- Nokia Network as Code Python SDK
+- CAMARA / Open Gateway APIs
+- Device Reachability
+- Location Retrieval
+- Geofencing integration
 
-### Frontend
+## Frontend
 
-* HTML
-* CSS
-* JavaScript
-* Leaflet
-* OpenStreetMap
+- HTML
+- CSS
+- JavaScript
+- Leaflet
+- OpenStreetMap
 
-### Data / Intelligence
+## Intelligence / Decision Layer
 
-* modular Python decision agents;
-* geographic distance calculations;
-* responder-ranking logic;
-* emergency-resource optimization;
-* simulated operational datasets.
+- modular Python decision agents;
+- agent orchestration;
+- dynamic decision replanning;
+- geographic distance calculations;
+- responder-ranking logic;
+- resource optimization;
+- hospital-capacity allocation;
+- route-access evaluation;
+- staging-site evaluation;
+- command governance.
 
 ---
 
@@ -323,6 +658,7 @@ ARES/
 │   │
 │   ├── agents/
 │   │   ├── disaster_assessment_agent.py
+│   │   ├── field_medical_post_agent.py
 │   │   ├── incident_ingestion_agent.py
 │   │   ├── incident_reassessment_agent.py
 │   │   ├── network_agent.py
@@ -330,7 +666,9 @@ ARES/
 │   │   ├── regional_reinforcement_agent.py
 │   │   ├── resource_escalation_agent.py
 │   │   ├── responder_evaluator.py
-│   │   └── response_planning_agent.py
+│   │   ├── response_planning_agent.py
+│   │   ├── route_access_agent.py
+│   │   └── staging_site_agent.py
 │   │
 │   ├── models/
 │   │   └── resources.py
@@ -343,9 +681,19 @@ ARES/
 │   │   ├── resource_optimizer.py
 │   │   └── responder_ranker.py
 │   │
+│   ├── orchestration/
+│   │   ├── __init__.py
+│   │   ├── ares_orchestrator.py
+│   │   ├── command_approval.py
+│   │   └── decision_replanner.py
+│   │
+│   ├── simulation/
+│   │
 │   ├── static/
 │   │   ├── css/
+│   │   │   └── dashboard.css
 │   │   └── js/
+│   │       └── dashboard.js
 │   │
 │   ├── templates/
 │   │   └── dashboard.html
@@ -353,6 +701,9 @@ ARES/
 │   └── main.py
 │
 ├── data/
+│   ├── beirut_demo_scenario.py
+│   ├── beirut_road_network.py
+│   ├── beirut_staging_sites.py
 │   └── demo_scenario.py
 │
 ├── tests/
@@ -367,14 +718,14 @@ ARES/
 
 # Installation
 
-## 1. Clone the repository
+## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/majd2006/ARES.git
 cd ARES
 ```
 
-## 2. Create a virtual environment
+## 2. Create a Virtual Environment
 
 ### Windows
 
@@ -390,13 +741,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-## 3. Install dependencies
+## 3. Install Dependencies
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-The hackathon prototype uses:
+The prototype currently uses:
 
 ```text
 Flask==3.1.3
@@ -415,7 +766,7 @@ Create a `.env` file in the project root.
 NOKIA_API_KEY=your_nokia_network_as_code_api_key
 ```
 
-Never commit the real `.env` file or API key to GitHub.
+Never commit a real `.env` file or API key to the repository.
 
 An `.env.example` file is provided to document the required configuration safely.
 
@@ -423,7 +774,7 @@ An `.env.example` file is provided to document the required configuration safely
 
 # Running ARES
 
-From the root of the repository:
+From the repository root:
 
 ```bash
 python -m app.main
@@ -435,123 +786,123 @@ The Flask application starts on:
 http://127.0.0.1:5000
 ```
 
-The server is configured to listen on port `5000`.
+Open this address in a browser to access the ARES operational dashboard.
 
 ---
 
-# API Endpoints
+# REST API and Demo Controls
 
-The current Flask backend exposes the following routes.
+The Flask backend exposes REST endpoints supporting:
 
-| Method | Endpoint                          | Purpose                                      |
-| ------ | --------------------------------- | -------------------------------------------- |
-| GET    | `/`                               | ARES operational dashboard                   |
-| GET    | `/api/status`                     | Current system / dashboard state             |
-| POST   | `/api/incidents`                  | Submit incident information                  |
-| POST   | `/api/events/geofence`            | Handle geofencing-related events             |
-| POST   | `/api/simulations/network-outage` | Simulate responder network loss              |
-| POST   | `/api/simulations/reset`          | Reset simulation state                       |
-| POST   | `/api/reassessment/reset`         | Reset incident reassessment state            |
-| POST   | `/api/geofencing/reset`           | Reset geofencing state                       |
-| POST   | `/api/demo/reset`                 | Reset the demonstration                      |
-| POST   | `/api/demo/baseline`              | Load the baseline demonstration scenario     |
-| POST   | `/api/demo/escalate`              | Escalate the incident and trigger replanning |
+- dashboard state retrieval;
+- incident submission;
+- simulation control;
+- network-outage simulation;
+- incident reassessment;
+- geofencing events;
+- demo reset;
+- baseline scenario loading;
+- incident escalation;
+- command approval;
+- command rejection;
+- runtime operational replanning.
+
+Key final-prototype controls include:
+
+```text
+POST /api/demo/reset
+POST /api/simulations/network-outage
+POST /api/command/approve
+POST /api/command/reject
+```
+
+Additional routes are implemented in `app/main.py` for the complete dashboard and demonstration workflow.
 
 ---
 
 # Demonstration Workflow
 
-The hackathon demonstration illustrates how the operational plan changes as the emergency evolves.
+A typical final ARES demonstration follows this operational sequence:
 
 ```text
-1. Load baseline incident
+1. Load Beirut baseline scenario
         ↓
 2. Assess disaster impact
         ↓
-3. Evaluate and rank responders
+3. Evaluate telecom/network state
         ↓
-4. Generate resource plan
+4. Evaluate and rank responders
         ↓
-5. Escalate incident
+5. Calculate resource requirements
         ↓
-6. Detect additional resource requirements
+6. Allocate hospital capacity
         ↓
-7. Request regional reinforcement
+7. Evaluate staging / field medical needs
         ↓
-8. Simulate network loss
+8. Generate operational strategy
         ↓
-9. Remove affected responder
+9. Present recommendation to commander
         ↓
-10. Recalculate operational strategy
+10. Introduce operational disruption
+        ↓
+11. Detect material change
+        ↓
+12. Dynamically replan
+        ↓
+13. Present revised operational strategy
+        ↓
+14. Commander approves or rejects
 ```
 
-This demonstrates that ARES is not simply a static emergency dashboard.
+Operational disruptions can include scenarios such as:
 
-The system reacts to changing operational and telecommunications conditions.
+- network outage;
+- road obstruction;
+- incident escalation;
+- resource pressure.
 
----
-
-# Demo Scenario
-
-The baseline simulated scenario includes:
-
-* an urban emergency zone;
-* responder teams with different specializations;
-* hospitals with limited available capacity;
-* relief-center resources;
-* Nokia network information.
-
-ARES evaluates these inputs to produce:
-
-* disaster assessment;
-* responder eligibility;
-* responder rankings;
-* recommended emergency resources;
-* responder assignments;
-* hospital allocation;
-* operational reserves;
-* regional reinforcement recommendations.
-
-During escalation or network loss, the response strategy is recalculated.
+This demonstrates that ARES continuously reasons over changing operational conditions rather than displaying a fixed emergency plan.
 
 ---
 
 # Testing
 
-The repository contains dedicated scripts for testing major ARES components.
+ARES contains dedicated tests for individual agents as well as higher-level orchestration, resilience, and replanning behavior.
 
-Examples include:
+Important final-prototype tests include:
 
 ```text
+test_ares_orchestrator.py
+test_beirut_regional_reinforcement.py
+test_beirut_scenario.py
 test_demo_scenario.py
 test_disaster_assessment_agent.py
+test_dynamic_replanning.py
 test_incident_ingestion_agent.py
 test_incident_reassessment_agent.py
 test_network_agent.py
 test_network_location.py
+test_network_resilience.py
+test_nokia_geofencing.py
 test_nokia_reachability.py
 test_operational_strategy_agent.py
+test_orchestrator_resilience.py
 test_regional_reinforcement_agent.py
 test_resource_escalation_agent.py
 test_resource_optimizer.py
 test_responder_evaluator.py
 test_responder_ranker.py
 test_response_planning_agent.py
+test_runtime_resource_pressure.py
 ```
 
-For example:
+The full test suite can be executed with:
 
 ```bash
-python -m tests.test_nokia_reachability
+python -m pytest -q
 ```
 
-and:
-
-```bash
-python -m tests.test_response_planning_agent
-```
-
-Some Nokia Network as Code tests require a valid API key.
+Some Nokia Network as Code integration tests may require valid API credentials.
 
 ---
 
@@ -559,31 +910,52 @@ Some Nokia Network as Code tests require a valid API key.
 
 ARES is currently a **hackathon software prototype**.
 
-The disaster, responder, relief-center, and hospital datasets used in the demonstration are simulated to validate the end-to-end orchestration architecture.
+The disaster, responder, hospital, road, staging-site, and relief-resource datasets used by the demonstration are designed to validate the end-to-end orchestration architecture.
 
-The prototype demonstrates:
+The prototype demonstrates the technical feasibility of combining:
 
-* multi-stage emergency decision logic;
-* Nokia Network as Code integration;
-* responder reachability evaluation;
-* network-supported location use;
-* resource optimization;
-* hospital allocation;
-* dynamic incident reassessment;
-* regional reinforcement;
-* network-loss replanning;
-* interactive operational visualization.
+- emergency incident assessment;
+- responder intelligence;
+- telecom-network intelligence;
+- resource optimization;
+- operational planning;
+- geographic constraints;
+- dynamic replanning;
+- command governance.
 
-ARES is not currently deployed as a production emergency-management system.
+ARES is **not currently deployed as a production emergency-management system**.
 
-Production use would require:
+Production deployment would require:
 
-* validated emergency datasets;
-* cybersecurity controls;
-* resilient infrastructure;
-* regulatory and safety review;
-* integration with official emergency-management systems;
-* production telecom and public-safety agreements.
+- validated real-world emergency datasets;
+- official responder and hospital integrations;
+- production-grade cybersecurity;
+- authentication and authorization infrastructure;
+- high-availability deployment;
+- resilient telecommunications integration;
+- regulatory and safety review;
+- integration with official emergency-management systems;
+- operational validation with emergency professionals.
+
+---
+
+# Design Philosophy
+
+ARES follows three important principles.
+
+### 1. Network intelligence should influence operational decisions
+
+A responder that cannot reliably be reached should not be treated identically to a responder with confirmed communications.
+
+### 2. Emergency plans must be adaptive
+
+A valid plan at one moment may become invalid after a network outage, road obstruction, resource shortage, or incident escalation.
+
+### 3. Humans retain authority
+
+ARES supports emergency commanders.
+
+It does not replace them.
 
 ---
 
@@ -591,17 +963,20 @@ Production use would require:
 
 Potential extensions include:
 
-* real-time hospital capacity feeds;
-* ambulance and responder telemetry;
-* live road and traffic information;
-* additional Open Gateway network intelligence;
-* Quality on Demand;
-* expanded geofencing;
-* satellite-based incident assessment;
-* drone-based damage mapping;
-* ML-assisted damage estimation;
-* multi-incident coordination;
-* multi-agency regional resource optimization.
+- real-time hospital capacity feeds;
+- ambulance and responder telemetry;
+- live road and traffic APIs;
+- additional CAMARA / Open Gateway capabilities;
+- Quality on Demand;
+- expanded geofencing;
+- programmable connectivity;
+- satellite-based incident assessment;
+- drone-based damage mapping;
+- ML-assisted damage estimation;
+- multi-incident coordination;
+- multi-agency resource optimization;
+- resilient cloud/edge deployment;
+- integration with official emergency-dispatch systems.
 
 ---
 
@@ -609,13 +984,13 @@ Potential extensions include:
 
 ARES is designed as a potential **B2G / B2B2G emergency-response platform** for:
 
-* governments;
-* municipalities;
-* civil defense organizations;
-* emergency medical services;
-* relief organizations;
-* smart-city operators;
-* telecommunications partners.
+- governments;
+- municipalities;
+- civil defense organizations;
+- emergency medical services;
+- humanitarian and relief organizations;
+- smart-city operators;
+- telecommunications partners.
 
 Potential commercialization models include:
 
@@ -628,29 +1003,38 @@ The central value proposition is to coordinate existing emergency assets more in
 
 ---
 
+# Repository
+
+Source code:
+
+**https://github.com/majd2006/ARES**
+
+---
+
 # Team
 
 ## Junior Engineers
 
 ### Majd Kassem
 
-Third-year engineering student
+Third-year engineering student  
 Co-Developer
 
 ### Zein El Abidine El Assaad
 
-Third-year engineering student
+Third-year engineering student  
 Co-Developer
 
 Shared responsibilities included:
 
-* system architecture;
-* backend implementation;
-* AI / decision orchestration;
-* Nokia Network as Code integration;
-* testing;
-* dashboard development;
-* hackathon demonstration preparation.
+- system architecture;
+- backend implementation;
+- AI / decision orchestration;
+- Nokia Network as Code integration;
+- dynamic replanning;
+- testing;
+- dashboard development;
+- hackathon demonstration preparation.
 
 ---
 
@@ -658,17 +1042,18 @@ Shared responsibilities included:
 
 **MENA Ignite Open Gateway Hackathon 2026**
 
-**Theme:**
+**Theme:**  
 Smart Cities, Urban Safety & Mega-Project Infrastructure
 
-**Project:**
+**Project:**  
 ARES — AI-Powered Adaptive Emergency Response System
 
 ---
 
-## Disclaimer
+# Disclaimer
 
 ARES is an experimental decision-support prototype developed for the MENA Ignite Open Gateway Hackathon 2026.
 
 It is not intended to autonomously replace emergency commanders, medical personnel, or official public-safety decision-making systems.
 
+All operational scenarios and recommendations demonstrated by the prototype should be interpreted within the context of research, experimentation, and hackathon evaluation.
